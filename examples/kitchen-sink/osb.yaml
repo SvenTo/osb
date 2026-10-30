@@ -1,0 +1,125 @@
+# Exercises the remaining built-in actions; used as an integration test:
+#   osb render shell --flavor ubuntu -f examples/kitchen-sink/osb.yaml | docker run --rm -i ubuntu:24.04 sh -s
+name: kitchen-sink
+
+steps:
+  - action: install-packages
+    args: { packages: [ca-certificates, curl, xz-utils] }
+
+  - action: remove-packages
+    args: { packages: [nano] }
+
+  - action: hold-packages
+    args: { packages: [curl] }
+
+  - title: Third-party repository
+    action: add-repository
+    args:
+      name: { by-flavor: { arch: multilib, default: docker } }
+      apt:
+        uri: https://download.docker.com/linux/${{ flavor.name }}
+        components: stable
+        key-url: https://download.docker.com/linux/${{ flavor.name }}/gpg
+      pacman:
+        server: https://geo.mirror.pkgbuild.com/$repo/os/$arch
+        sig-level: Optional TrustAll
+
+  - action: download-file
+    args:
+      url: https://raw.githubusercontent.com/git/git/v2.47.0/README.md
+      path: /opt/readme/README.md
+      sha256: 4f4e044593fd16cce4a6afa7af10f4f9b4cceece89480e71c9e22a5cde67f241
+
+  - action: run-command
+    args: { command: "tar -C /etc -cJf /tmp/doc.tar.xz skel" }
+
+  - action: extract-archive
+    args: { path: /tmp/doc.tar.xz, dest: /opt/skel, strip-components: 1 }
+
+  - action: git-clone
+    args: { repo: https://github.com/octocat/Hello-World.git, dest: /opt/hello, depth: 1 }
+
+  - action: add-group
+    args: { name: ops, system: true }
+
+  - action: add-user
+    args: { name: svc, system: true, create-home: false, shell: /usr/sbin/nologin }
+
+  - action: add-user
+    args: { name: tmpuser }
+
+  - action: add-user-to-group
+    args: { user: svc, groups: [ops] }
+
+  - action: remove-user
+    args: { name: tmpuser, remove-home: true }
+
+  - action: set-password
+    args: { user: svc, random: true, length: 16 }
+
+  - action: symlink
+    args: { path: /usr/local/bin/hello-readme, target: /opt/hello/README }
+
+  - action: set-permissions
+    args: { path: /opt/hello, owner: svc, group: ops, recursive: true, mode: "0750" }
+
+  - action: delete-file
+    args: { path: /tmp/doc.tar.xz }
+
+  - action: trust-ca
+    args: { name: osb-test-ca, source: test-ca.pem }
+
+  - action: set-config-value
+    args: { path: /etc/app/app.yaml, format: yaml, key: root.nested.list, value: [1, 2] }
+
+  - action: set-config-value
+    args: { path: /etc/app/app.env, format: env, key: MODE, value: production }
+
+  - action: load-kernel-module
+    args: { modules: [br_netfilter] }
+
+  - action: add-mount
+    args: { device: tmpfs, path: /mnt/scratch, fstype: tmpfs, options: "size=10M", mount: false }
+
+  - action: add-systemd-drop-in
+    args:
+      unit: ssh.service
+      name: limits
+      content: |
+        [Service]
+        LimitNOFILE=4096
+
+  - action: enable-systemd-unit
+    args: { units: [fstrim.timer] }
+
+  - action: disable-systemd-unit
+    args: { units: [fstrim.timer], mask: true }
+
+  - action: restart-systemd-unit
+    args: { units: [cron.service] }
+
+  - action: wait-for
+    args: { path: /opt/hello, timeout: 5 }
+
+  - action: assert
+    args: { command: "test -f /etc/app/app.yaml", message: app.yaml is missing }
+
+  - action: reboot-required
+
+  - title: Verify
+    action: run-script
+    args:
+      script: |
+        set -x
+        test -s /opt/readme/README.md
+        test -d /opt/skel
+        test -f /opt/hello/README
+        id svc | grep -q ops
+        ! id tmpuser 2>/dev/null
+        test "$(stat -c %a /opt/hello)" = 750
+        grep -q 'MODE=production' /etc/app/app.env
+        grep -q 'nested' /etc/app/app.yaml
+        grep -q tmpfs /etc/fstab
+        test -f /etc/modules-load.d/osb.conf
+        ls /etc/ssl/certs | grep -qi osb || grep -rq "osb test CA" /etc/ssl/certs/ 2>/dev/null || trust list 2>/dev/null | grep -q "osb test CA"
+        echo KITCHEN-SINK-OK

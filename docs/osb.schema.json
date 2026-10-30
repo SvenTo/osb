@@ -1,0 +1,4096 @@
+{
+  "$defs": {
+    "action": {
+      "additionalProperties": false,
+      "properties": {
+        "arguments": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/argument"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": "object"
+        },
+        "description": {
+          "description": "Description",
+          "type": "string"
+        },
+        "flavors": {
+          "type": [
+            "array",
+            "string"
+          ]
+        },
+        "output": {
+          "type": "object"
+        },
+        "steps": {
+          "items": {
+            "$ref": "#/$defs/step"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "steps"
+      ],
+      "type": "object"
+    },
+    "argument": {
+      "additionalProperties": false,
+      "properties": {
+        "default": {
+          "description": "Default value; may use ${{ }} referring to earlier arguments"
+        },
+        "description": {
+          "description": "Description",
+          "type": "string"
+        },
+        "options": {
+          "description": "Allowed values (option)",
+          "type": "array"
+        },
+        "pattern": {
+          "description": "Regular expression the value must match (string, secret)",
+          "type": "string"
+        },
+        "required": {
+          "description": "Fail (or prompt) when no value is given",
+          "type": "boolean"
+        },
+        "type": {
+          "description": "Argument type (default string)",
+          "enum": [
+            "string",
+            "bool",
+            "int",
+            "option",
+            "array",
+            "secret"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "byFlavor": {
+      "additionalProperties": false,
+      "properties": {
+        "by-flavor": {
+          "description": "Value per flavor name, based-on, family or default",
+          "type": "object"
+        }
+      },
+      "required": [
+        "by-flavor"
+      ],
+      "type": "object"
+    },
+    "flavor": {
+      "additionalProperties": false,
+      "properties": {
+        "base-image": {
+          "description": "Container base image",
+          "type": "string"
+        },
+        "based-on": {
+          "description": "Built-in flavor a custom flavor derives from",
+          "type": "string"
+        },
+        "cloud-image": {
+          "description": "Cloud image URL for VM builds",
+          "type": "string"
+        },
+        "enabled": {
+          "description": "Enable the flavor (default true)",
+          "type": "boolean"
+        },
+        "vars": {
+          "description": "Variables available as flavor.vars",
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "import": {
+      "anyOf": [
+        {
+          "description": "Glob relative to this file",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "git": {
+              "description": "Git repository URL",
+              "type": "string"
+            },
+            "path": {
+              "description": "Glob (relative to the repository for git imports)",
+              "type": "string"
+            },
+            "ref": {
+              "description": "Branch, tag or commit",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "step": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "copy-files"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "dest": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Absolute destination (directory if it ends with / or the source is a directory/glob)"
+                  },
+                  "dir-mode": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "integer",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Mode for created directories (default: 0755)"
+                  },
+                  "group": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Group (group name or gid)"
+                  },
+                  "mode": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "integer",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Mode for files (default: keep the local mode)"
+                  },
+                  "owner": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Owner (user name or uid)"
+                  },
+                  "source": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Local file, directory or glob, relative to the configuration file"
+                  }
+                },
+                "required": [
+                  "source",
+                  "dest"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "delete-file"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "path": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "array",
+                          "string",
+                          "number"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Absolute path(s)"
+                  },
+                  "recursive": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "boolean",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Delete directories recursively (default: false)"
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "download-file"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "group": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Group (group name or gid)"
+                  },
+                  "mode": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "integer",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "File mode (default: 0644)"
+                  },
+                  "owner": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Owner (user name or uid)"
+                  },
+                  "path": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Absolute destination path"
+                  },
+                  "sha256": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Expected SHA-256 checksum (hex)"
+                  },
+                  "url": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "URL"
+                  }
+                },
+                "required": [
+                  "url",
+                  "path"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "extract-archive"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "dest": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Destination directory (created)"
+                  },
+                  "group": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Group (group name or gid)"
+                  },
+                  "owner": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Owner (user name or uid)"
+                  },
+                  "path": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Archive on the target"
+                  },
+                  "strip-components": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "integer",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Strip leading path components (tar only) (default: 0)"
+                  }
+                },
+                "required": [
+                  "path",
+                  "dest"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "git-clone"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "depth": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "integer",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Shallow clone depth (0 = full)"
+                  },
+                  "dest": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Destination directory"
+                  },
+                  "ref": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Branch, tag or commit to check out"
+                  },
+                  "repo": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Repository URL"
+                  },
+                  "user": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Clone as this user"
+                  }
+                },
+                "required": [
+                  "repo",
+                  "dest"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "line-in-file"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "line": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "The line (required for state present)"
+                  },
+                  "path": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Absolute path"
+                  },
+                  "regex": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Extended regular expression selecting the line to replace or remove"
+                  },
+                  "state": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "present or absent (default: present) One of: present, absent."
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "mkdir"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "group": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Group (group name or gid)"
+                  },
+                  "mode": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "integer",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Directory mode (default: 0755)"
+                  },
+                  "owner": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Owner (user name or uid)"
+                  },
+                  "path": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "array",
+                          "string",
+                          "number"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Absolute path(s)"
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "replace-in-file"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "path": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Absolute path"
+                  },
+                  "regex": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "POSIX extended regular expression"
+                  },
+                  "replace": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Replacement"
+                  }
+                },
+                "required": [
+                  "path",
+                  "regex",
+                  "replace"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "set-config-value"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "format": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "File format One of: json, yaml, ini, env."
+                  },
+                  "key": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Key; dot separated path for json and yaml (a.b.0.c)"
+                  },
+                  "path": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Absolute path of the file (created when missing)"
+                  },
+                  "section": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "INI section (empty for the top level)"
+                  },
+                  "value": {
+                    "anyOf": [
+                      {},
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Value; any YAML value for json and yaml"
+                  }
+                },
+                "required": [
+                  "path",
+                  "format",
+                  "key",
+                  "value"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "set-permissions"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "group": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Group (group name or gid)"
+                  },
+                  "mode": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Mode, octal (0750) or symbolic (u+x)"
+                  },
+                  "owner": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Owner (user name or uid)"
+                  },
+                  "path": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "array",
+                          "string",
+                          "number"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Absolute path(s)"
+                  },
+                  "recursive": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "boolean",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Apply recursively (default: false)"
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "symlink"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "path": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Absolute path of the link"
+                  },
+                  "target": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Link target"
+                  }
+                },
+                "required": [
+                  "path",
+                  "target"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "template-file"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "group": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Group (group name or gid)"
+                  },
+                  "mode": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "integer",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "File mode (default: 0644)"
+                  },
+                  "owner": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Owner (user name or uid)"
+                  },
+                  "path": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Absolute destination path"
+                  },
+                  "source": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Template file, relative to the configuration file"
+                  }
+                },
+                "required": [
+                  "path",
+                  "source"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "write-file"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "append": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "boolean",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Append the content unless it is already present (default: false)"
+                  },
+                  "content": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "File content"
+                  },
+                  "group": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Group (group name or gid)"
+                  },
+                  "mode": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "integer",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "File mode (default: 0644)"
+                  },
+                  "owner": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Owner (user name or uid)"
+                  },
+                  "path": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Absolute destination path"
+                  },
+                  "source": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Local file, relative to the configuration file"
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "run-command"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "command": {
+                    "anyOf": [
+                      {},
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Command line (string) or argv (list)"
+                  },
+                  "dir": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Working directory"
+                  },
+                  "env": {
+                    "anyOf": [
+                      {
+                        "type": "object"
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Environment variables"
+                  },
+                  "shell": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "boolean",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Run the command with /bin/sh -c (default: false)"
+                  },
+                  "user": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Run as this user"
+                  }
+                },
+                "required": [
+                  "command"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "run-script"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "args": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "array",
+                          "string",
+                          "number"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Arguments passed to the script"
+                  },
+                  "dir": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Working directory"
+                  },
+                  "env": {
+                    "anyOf": [
+                      {
+                        "type": "object"
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Environment variables"
+                  },
+                  "interpreter": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Interpreter, e.g. /bin/bash or /usr/bin/python3 (default: /bin/sh)"
+                  },
+                  "script": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Inline script"
+                  },
+                  "source": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Local script file, relative to the configuration file"
+                  },
+                  "user": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Run as this user"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "add-group"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "gid": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Numeric group id"
+                  },
+                  "name": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Group name"
+                  },
+                  "system": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "boolean",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Create a system group (default: false)"
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "add-user"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "comment": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Full name / GECOS"
+                  },
+                  "create-home": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "boolean",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Create the home directory (default: true)"
+                  },
+                  "groups": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "array",
+                          "string",
+                          "number"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Supplementary groups (created when missing)"
+                  },
+                  "home": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Home directory"
+                  },
+                  "name": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "User name"
+                  },
+                  "shell": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Login shell, e.g. /bin/bash"
+                  },
+                  "sudo": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "boolean",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Grant sudo rights (sudo group on Debian/Ubuntu, wheel on Arch) (default: false)"
+                  },
+                  "system": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "boolean",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Create a system account (default: false)"
+                  },
+                  "uid": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Numeric user id"
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "add-user-to-group"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "groups": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "array",
+                          "string",
+                          "number"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Groups"
+                  },
+                  "user": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "User name"
+                  }
+                },
+                "required": [
+                  "user",
+                  "groups"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "authorize-ssh-key"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "array",
+                          "string",
+                          "number"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Public key(s)"
+                  },
+                  "source": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Local file with public keys, relative to the configuration file"
+                  },
+                  "user": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "User name"
+                  }
+                },
+                "required": [
+                  "user"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "remove-user"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "User name"
+                  },
+                  "remove-home": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "boolean",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Also remove the home directory and mail spool (default: false)"
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "set-password"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "expire": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "boolean",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Force a password change at first login (default: false)"
+                  },
+                  "hash": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Password hash as produced by mkpasswd/openssl passwd"
+                  },
+                  "length": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "integer",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Length of a random password (default: 20)"
+                  },
+                  "password": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Plain text password (use a secret argument)"
+                  },
+                  "random": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "boolean",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Generate a random password and print it (default: false)"
+                  },
+                  "user": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "User name"
+                  }
+                },
+                "required": [
+                  "user"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "add-repository"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "apt": {
+                    "anyOf": [
+                      {},
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "apt settings: uri (required), suites (default: the release codename), components (default: main), key (armored key), key-url, architectures"
+                  },
+                  "name": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Repository name (file name / pacman section)"
+                  },
+                  "pacman": {
+                    "anyOf": [
+                      {},
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "pacman settings: server (required), sig-level, key-id, keyserver"
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "hold-packages"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "packages": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "array",
+                          "string",
+                          "number"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Package names"
+                  }
+                },
+                "required": [
+                  "packages"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "install-package-file"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "path": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Package file on the target"
+                  },
+                  "source": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Local package file, copied to /var/cache/osb first"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "install-packages"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "packages": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "array",
+                          "string",
+                          "number"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Package names"
+                  },
+                  "source": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Local package list file (# comments allowed)"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "remove-packages"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "packages": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "array",
+                          "string",
+                          "number"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Package names"
+                  },
+                  "source": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Local package list file"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "upgrade-system"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "add-mount"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "device": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Device, UUID=..., LABEL=... or remote path"
+                  },
+                  "dump": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "integer",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "dump field (default: 0)"
+                  },
+                  "fstype": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "File system type"
+                  },
+                  "mount": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "boolean",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Mount immediately on live systems (default: true)"
+                  },
+                  "options": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Mount options (default: defaults)"
+                  },
+                  "pass": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "integer",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "fsck pass number (default: 0)"
+                  },
+                  "path": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Mount point"
+                  }
+                },
+                "required": [
+                  "device",
+                  "path",
+                  "fstype"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "add-sudoers"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "content": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "sudoers content"
+                  },
+                  "name": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "File name"
+                  },
+                  "rules": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "array",
+                          "string",
+                          "number"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "sudoers lines"
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "add-swap-file"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "path": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Swap file path (default: /swapfile)"
+                  },
+                  "size": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Size, e.g. 2G or 512M"
+                  }
+                },
+                "required": [
+                  "size"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "load-kernel-module"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "modules": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "array",
+                          "string",
+                          "number"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Module names"
+                  },
+                  "name": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "File name: /etc/modules-load.d/\u003cname\u003e.conf (default: osb)"
+                  }
+                },
+                "required": [
+                  "modules"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "set-environment"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "vars": {
+                    "anyOf": [
+                      {
+                        "type": "object"
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Variable to value"
+                  }
+                },
+                "required": [
+                  "vars"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "set-hostname"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "hostname": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Host name"
+                  }
+                },
+                "required": [
+                  "hostname"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "set-locale"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "charset": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Character set used in locale.gen (default: UTF-8)"
+                  },
+                  "locale": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Locale, e.g. en_US.UTF-8"
+                  }
+                },
+                "required": [
+                  "locale"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "set-timezone"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "timezone": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "IANA time zone, e.g. Europe/Berlin"
+                  }
+                },
+                "required": [
+                  "timezone"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "sysctl"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "File name: /etc/sysctl.d/90-\u003cname\u003e.conf (default: osb)"
+                  },
+                  "settings": {
+                    "anyOf": [
+                      {
+                        "type": "object"
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Parameter to value"
+                  }
+                },
+                "required": [
+                  "settings"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "trust-ca"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "content": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "PEM certificate"
+                  },
+                  "name": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Certificate name (file name without extension)"
+                  },
+                  "source": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Local PEM file"
+                  },
+                  "url": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Download the certificate from this URL"
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "add-systemd-drop-in"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "content": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Drop-in content"
+                  },
+                  "name": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Drop-in name (default: osb)"
+                  },
+                  "restart": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "boolean",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Restart the unit on live systems (default: false)"
+                  },
+                  "source": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Local drop-in file"
+                  },
+                  "unit": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Unit to override"
+                  }
+                },
+                "required": [
+                  "unit"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "add-systemd-unit"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "content": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Unit file content"
+                  },
+                  "enable": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "boolean",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Enable the unit (default: true)"
+                  },
+                  "name": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Unit name including suffix, e.g. app.service"
+                  },
+                  "source": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Local unit file"
+                  },
+                  "start": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "boolean",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "(Re)start the unit on live systems (default: false)"
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "disable-systemd-unit"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "mask": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "boolean",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Mask the units (default: false)"
+                  },
+                  "now": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "boolean",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Also stop the units on live systems (default: false)"
+                  },
+                  "units": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "array",
+                          "string",
+                          "number"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Unit names"
+                  }
+                },
+                "required": [
+                  "units"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "enable-systemd-unit"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "now": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "boolean",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Also start the units on live systems (default: false)"
+                  },
+                  "units": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "array",
+                          "string",
+                          "number"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Unit names"
+                  }
+                },
+                "required": [
+                  "units"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "restart-systemd-unit"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "units": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "array",
+                          "string",
+                          "number"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Unit names"
+                  }
+                },
+                "required": [
+                  "units"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "assert"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "command": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Run-time shell condition"
+                  },
+                  "message": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Error message (default: assertion failed)"
+                  },
+                  "that": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "boolean",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Generation-time condition"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "fail"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "message": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Error message"
+                  }
+                },
+                "required": [
+                  "message"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "log"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "level": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "info or warn (default: info) One of: info, warn."
+                  },
+                  "message": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Message"
+                  }
+                },
+                "required": [
+                  "message"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "reboot-required"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "message": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Message (default: a reboot is required to complete the configuration)"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "wait-for"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "command": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Shell command that must succeed"
+                  },
+                  "host": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Host for port checks (default: 127.0.0.1)"
+                  },
+                  "path": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Path that must exist"
+                  },
+                  "port": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "integer",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "TCP port"
+                  },
+                  "timeout": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "integer",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Timeout in seconds (default: 60)"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "action": {
+          "description": "Built-in or custom action",
+          "type": "string"
+        },
+        "args": {
+          "description": "Action arguments",
+          "type": "object"
+        },
+        "creates": {
+          "description": "Skip the step at run time if this path exists",
+          "type": "string"
+        },
+        "flavors": {
+          "description": "Only run for these flavors",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "string"
+          ]
+        },
+        "foreach": {
+          "description": "Repeat the step for each item (item, index)",
+          "type": [
+            "array",
+            "object",
+            "string"
+          ]
+        },
+        "if": {
+          "description": "JavaScript condition evaluated at generation time",
+          "type": [
+            "string",
+            "boolean"
+          ]
+        },
+        "name": {
+          "description": "Step name, used to reference outputs (steps[name].output)",
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "type": "string"
+        },
+        "on-error": {
+          "description": "What to do when the step fails at run time",
+          "enum": [
+            "fail",
+            "continue"
+          ]
+        },
+        "only-if": {
+          "description": "Run-time shell condition; the step runs only if it succeeds",
+          "type": "string"
+        },
+        "output": {
+          "description": "Output values available to later steps",
+          "type": "object"
+        },
+        "post-validation": {
+          "description": "JavaScript assertion evaluated after rendering (sees output and rendered)",
+          "type": "string"
+        },
+        "pre-script": {
+          "description": "JavaScript run before rendering; its global variables are visible in templates",
+          "type": "string"
+        },
+        "pre-validation": {
+          "description": "JavaScript assertion evaluated before rendering",
+          "type": "string"
+        },
+        "requires": {
+          "additionalProperties": false,
+          "properties": {
+            "packages": {
+              "description": "Packages installed if missing, or a mapping of flavor to packages",
+              "type": [
+                "array",
+                "object",
+                "string"
+              ]
+            }
+          },
+          "type": "object"
+        },
+        "steps": {
+          "description": "Nested steps (block)",
+          "items": {
+            "$ref": "#/$defs/step"
+          },
+          "type": "array"
+        },
+        "targets": {
+          "description": "Only run for these targets",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "string"
+          ]
+        },
+        "title": {
+          "description": "Title shown in logs",
+          "type": "string"
+        },
+        "unless": {
+          "description": "Run-time shell condition; the step is skipped if it succeeds",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "test": {
+      "additionalProperties": false,
+      "properties": {
+        "arguments": {
+          "type": "object"
+        },
+        "expect": {
+          "additionalProperties": false,
+          "properties": {
+            "contains": {
+              "type": [
+                "array",
+                "string"
+              ]
+            },
+            "error": {
+              "description": "Expected error (substring)",
+              "type": "string"
+            },
+            "golden": {
+              "description": "File with the expected output",
+              "type": "string"
+            },
+            "not-contains": {
+              "type": [
+                "array",
+                "string"
+              ]
+            },
+            "warnings": {
+              "type": [
+                "array",
+                "string"
+              ]
+            }
+          },
+          "type": "object"
+        },
+        "flavor": {
+          "description": "Flavor (default: first enabled)",
+          "type": "string"
+        },
+        "name": {
+          "description": "Test name",
+          "type": "string"
+        },
+        "run": {
+          "description": "Run the generated shell script in a container (osb test --run)",
+          "type": "boolean"
+        },
+        "steps": {
+          "items": {
+            "$ref": "#/$defs/step"
+          },
+          "type": "array"
+        },
+        "target": {
+          "description": "Target (default shell)",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "$id": "https://github.com/SvenTo/osb/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "actions": {
+      "additionalProperties": {
+        "$ref": "#/$defs/action"
+      },
+      "type": "object"
+    },
+    "arguments": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/argument"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "type": "object"
+    },
+    "artifacts": {
+      "additionalProperties": false,
+      "properties": {
+        "cloud-init": {
+          "additionalProperties": false,
+          "properties": {
+            "extra": {
+              "description": "Merged verbatim into #cloud-config",
+              "type": "object"
+            },
+            "hostname": {
+              "description": "Host name",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "dockerfile": {
+          "additionalProperties": false,
+          "properties": {
+            "base-image": {
+              "description": "Base image (default per flavor)",
+              "type": "string"
+            },
+            "cmd": {
+              "description": "CMD",
+              "type": [
+                "array",
+                "string"
+              ]
+            },
+            "entrypoint": {
+              "description": "ENTRYPOINT",
+              "type": [
+                "array",
+                "string"
+              ]
+            },
+            "env": {
+              "description": "ENV instructions",
+              "type": "object"
+            },
+            "expose": {
+              "description": "EXPOSE ports",
+              "type": [
+                "array",
+                "string"
+              ]
+            },
+            "labels": {
+              "description": "LABEL instructions",
+              "type": "object"
+            },
+            "user": {
+              "description": "Final USER",
+              "type": "string"
+            },
+            "volumes": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "workdir": {
+              "description": "Final WORKDIR",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "oci": {
+          "additionalProperties": false,
+          "properties": {
+            "archive": {
+              "description": "Write an OCI archive to this file instead of loading the image",
+              "type": "string"
+            },
+            "builder": {
+              "description": "Container CLI: docker (default) or podman",
+              "type": "string"
+            },
+            "platform": {
+              "description": "Target platform, e.g. linux/arm64",
+              "type": "string"
+            },
+            "push": {
+              "description": "Push after building",
+              "type": [
+                "boolean",
+                "string"
+              ]
+            },
+            "tags": {
+              "description": "Image tags",
+              "type": [
+                "array",
+                "string"
+              ]
+            }
+          },
+          "type": "object"
+        },
+        "ova": {
+          "additionalProperties": false,
+          "properties": {
+            "cpus": {
+              "description": "CPU count",
+              "type": [
+                "integer",
+                "string"
+              ]
+            },
+            "memory": {
+              "description": "Memory in MiB",
+              "type": [
+                "integer",
+                "string"
+              ]
+            },
+            "name": {
+              "description": "Virtual machine name",
+              "type": "string"
+            },
+            "os-type": {
+              "description": "VMware guest OS identifier",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "qcow2": {
+          "additionalProperties": false,
+          "properties": {
+            "base-image": {
+              "description": "Cloud image URL or path (default per flavor)",
+              "type": "string"
+            },
+            "compress": {
+              "description": "Compress the image",
+              "type": [
+                "boolean",
+                "string"
+              ]
+            },
+            "cpus": {
+              "description": "CPU count",
+              "type": [
+                "integer",
+                "string"
+              ]
+            },
+            "disk-size": {
+              "description": "Disk size, e.g. 20G",
+              "type": "string"
+            },
+            "driver": {
+              "description": "qemu or libvirt",
+              "type": "string"
+            },
+            "libvirt-uri": {
+              "description": "libvirt connection URI (default qemu:///session)",
+              "type": "string"
+            },
+            "memory": {
+              "description": "Memory in MiB",
+              "type": [
+                "integer",
+                "string"
+              ]
+            },
+            "sha256": {
+              "description": "Expected SHA-256 of the base image",
+              "type": "string"
+            },
+            "timeout": {
+              "description": "Build timeout, e.g. 30m",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "shell": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "wsl": {
+          "additionalProperties": false,
+          "properties": {
+            "default-user": {
+              "description": "Default user of the distribution",
+              "type": "string"
+            },
+            "hostname": {
+              "description": "Host name",
+              "type": "string"
+            },
+            "name": {
+              "description": "Distribution name shown in WSL (default: config name)",
+              "type": "string"
+            },
+            "systemd": {
+              "description": "Enable systemd (default true)",
+              "type": [
+                "boolean",
+                "string"
+              ]
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "description": {
+      "description": "Description",
+      "type": "string"
+    },
+    "flavors": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/flavor"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "type": "object"
+    },
+    "imports": {
+      "items": {
+        "$ref": "#/$defs/import"
+      },
+      "type": "array"
+    },
+    "name": {
+      "description": "Name used for images and output files",
+      "type": "string"
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/step"
+      },
+      "type": "array"
+    },
+    "targets": {
+      "items": {
+        "enum": [
+          "apply",
+          "cloud-init",
+          "dockerfile",
+          "oci",
+          "ova",
+          "qcow2",
+          "shell",
+          "wsl"
+        ]
+      },
+      "type": "array"
+    },
+    "tests": {
+      "items": {
+        "$ref": "#/$defs/test"
+      },
+      "type": "array"
+    }
+  },
+  "title": "osb configuration",
+  "type": "object"
+}

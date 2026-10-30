@@ -1,0 +1,34 @@
+# Tests for dev-tools.yaml (imported automatically). Run: osb test examples/
+arguments:
+  user: { type: string, default: alice }
+
+tests:
+  - name: renders the profile snippet
+    steps:
+      - action: add-user
+        args: { name: "${{ args.user }}" }
+      - name: dotfiles
+        action: setup-dotfiles
+        args: { user: "${{ args.user }}", editor: nano }
+      - action: log
+        args: { message: "profile at ${{ steps.dotfiles.output.profile }}" }
+    expect:
+      contains:
+        - export EDITOR=nano
+        - profile at /home/alice/.profile.d/osb.sh
+    run: true
+
+  - name: rejects unknown editors
+    steps:
+      - action: setup-dotfiles
+        args: { user: bob, editor: emacs }
+    expect:
+      error: 'value "emacs" is not one of: vim, nano'
+
+  - name: golden output for archlinux
+    flavor: archlinux
+    steps:
+      - action: setup-dotfiles
+        args: { user: bob }
+    expect:
+      golden: testdata/dotfiles-archlinux.sh

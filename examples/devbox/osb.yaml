@@ -1,0 +1,175 @@
+# yaml-language-server: $schema=../../docs/osb.schema.json
+name: devbox
+description: Development machine example exercising most osb features
+
+arguments:
+  user:
+    type: string
+    description: Primary user
+    default: dev
+    pattern: "^[a-z_][a-z0-9_-]*$"
+  hostname:
+    type: string
+    default: "${{ args.user }}-box"
+  password:
+    type: secret
+    description: Password of the primary user
+    default: change-me-please
+  extra-users:
+    type: array
+    default: [alice, bob]
+  with-docker-repo:
+    type: bool
+    default: false
+
+flavors:
+  ubuntu:
+    vars: { apt-options: "--no-install-recommends" }
+  debian: {}
+  archlinux: {}
+
+imports:
+  - library/*.yaml
+
+artifacts:
+  dockerfile:
+    env: { LANG: C.UTF-8 }
+    cmd: [/bin/bash, -l]
+    workdir: /home/${{ args.user }}
+  oci:
+    tags: ["osb-example/devbox:${{ flavor.name }}"]
+  wsl:
+    default-user: ${{ args.user }}
+  qcow2:
+    disk-size: 8G
+    memory: 2048
+  cloud-init:
+    hostname: ${{ args.hostname }}
+
+steps:
+  - title: Base packages
+    action: install-packages
+    args:
+      packages: [ca-certificates, curl, sudo, vim]
+      source: packages.txt
+
+  - title: Locale and time zone
+    steps:
+      - action: set-timezone
+        args: { timezone: Europe/Berlin }
+      - action: set-locale
+        args: { locale: en_US.UTF-8 }
+
+  - name: primary-user
+    title: Create ${{ args.user }}
+    action: add-user
+    args:
+      name: ${{ args.user }}
+      shell: /bin/bash
+      sudo: true
+      groups: [developers]
+    output:
+      home: /home/${{ args.user }}
+
+  - title: Password for ${{ args.user }}
+    action: set-password
+    args:
+      user: ${{ args.user }}
+      password: ${{ args.password }}
+
+  - title: Extra users
+    action: add-user
+    foreach: ${{ args["extra-users"] }}
+    args: { name: "${{ item }}", shell: /bin/bash }
+
+  - title: SSH key
+    action: authorize-ssh-key
+    args: { user: "${{ args.user }}", source: keys/dev.pub }
+
+  - title: Dotfiles
+    name: dotfiles
+    action: setup-dotfiles
+    args: { user: "${{ args.user }}" }
+
+  - title: Message of the day
+    action: template-file
+    args: { path: /etc/motd, source: motd.tmpl }
+
+  - title: Application files
+    action: copy-files
+    args: { source: files/etc/devbox/, dest: /etc/devbox/ }
+
+  - title: Configure the application
+    steps:
+      - action: set-config-value
+        args: { path: /etc/devbox/config.ini, format: ini, section: main, key: owner, value: "${{ args.user }}" }
+      - action: set-config-value
+        args: { path: /etc/devbox/settings.json, format: json, key: editor.tabs, value: 4 }
+      - action: set-config-value
+        args: { path: /etc/devbox/settings.json, format: json, key: users, value: "${{ args['extra-users'] }}" }
+      - action: replace-in-file
+        args: { path: /etc/devbox/config.ini, regex: '^name = (.*)$', replace: 'name = \1 (osb)' }
+      - action: line-in-file
+        args: { path: /etc/devbox/config.ini, line: "# managed by osb" }
+
+  - title: Environment
+    action: set-environment
+    args:
+      vars: { EDITOR: vim, DEVBOX_USER: "${{ args.user }}" }
+
+  - title: Sudo without password
+    action: add-sudoers
+    args:
+      name: devbox
+      rules: ["${{ args.user }} ALL=(ALL) NOPASSWD: ALL"]
+
+  - title: Kernel settings
+    action: sysctl
+    args:
+      settings: { vm.swappiness: 10 }
+
+  - title: Hello service
+    action: add-systemd-unit
+    args:
+      name: devbox-hello.service
+      content: |
+        [Unit]
+        Description=Say hello
+        [Service]
+        Type=oneshot
+        ExecStart=/bin/echo hello from osb
+        [Install]
+        WantedBy=multi-user.target
+
+  - title: Docker repository
+    if: args["with-docker-repo"]
+    flavors: [ubuntu, debian]
+    action: add-repository
+    args:
+      name: docker
+      apt:
+        uri: https://download.docker.com/linux/${{ flavor.name }}
+        components: stable
+        key-url: https://download.docker.com/linux/${{ flavor.name }}/gpg
+
+  - title: Marker file (runs once)
+    action: run-command
+    creates: /var/lib/devbox/initialized
+    args:
+      command: sh -c 'mkdir -p /var/lib/devbox && date > /var/lib/devbox/initialized'
+
+  - title: Optional cleanup that may fail
+    action: run-script
+    on-error: continue
+    args:
+      script: |
+        echo "this step fails on purpose"
+        false
+
+  - title: Show what was done
+    action: run-command
+    pre-script: |
+      var count = args["extra-users"].length;
+    post-validation: rendered.indexOf("users") >= 0
+    args:
+      command: ["echo", "configured ${{ count }} extra users for ${{ steps['primary-user'].output.home }}"]

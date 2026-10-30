@@ -1,0 +1,24 @@
+# A small library of custom actions, imported by ../osb.yaml.
+actions:
+  setup-dotfiles:
+    description: Create a shell profile snippet for a user
+    arguments:
+      user: { type: string, required: true }
+      editor: { type: option, options: [vim, nano], default: vim }
+    output:
+      profile: /home/${{ args.user }}/.profile.d/osb.sh
+    steps:
+      - action: mkdir
+        args:
+          path: /home/${{ args.user }}/.profile.d
+          owner: ${{ args.user }}
+      - action: write-file
+        args:
+          path: /home/${{ args.user }}/.profile.d/osb.sh
+          owner: ${{ args.user }}
+          content: |
+            export EDITOR=${{ args.editor }}
+      - action: line-in-file
+        args:
+          path: /home/${{ args.user }}/.profile
+          line: 'for f in "$HOME"/.profile.d/*.sh; do . "$f"; done'
