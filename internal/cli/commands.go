@@ -573,8 +573,9 @@ func docsCmd() *cobra.Command {
 				return err
 			}
 			files := map[string]string{
-				"actions.md": docs.ActionsMarkdown(),
-				"cli.md":     docs.CLIMarkdown(newRoot()),
+				"actions.md":  docs.ActionsMarkdown(),
+				"settings.md": docs.SettingsMarkdown(),
+				"cli.md":      docs.CLIMarkdown(newRoot()),
 			}
 			for name, content := range files {
 				p := filepath.Join(out, name)

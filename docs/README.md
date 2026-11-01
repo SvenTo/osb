@@ -10,6 +10,7 @@
 
 Generated references (`make docs`):
 
-- [Built-in actions](reference/actions.md)
+- [Built-in and extra actions](reference/actions.md)
+- [Target settings](reference/settings.md)
 - [Command line](reference/cli.md)
 - [JSON schema](osb.schema.json)

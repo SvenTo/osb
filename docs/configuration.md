@@ -118,53 +118,24 @@ targets: [shell, apply, oci]
 
 ## Artifacts
 
-Target-specific settings; all values may use expressions.
+Target-specific settings: one block per target, all optional, all values may
+use [expressions](expressions.md). Settings of targets you do not build are
+ignored.
 
 ```yaml
 artifacts:
-  dockerfile:
-    base-image: ubuntu:24.04     # default: the flavor's base image
-    env: { LANG: C.UTF-8 }       # ENV at the top of the Dockerfile
-    labels: { org.opencontainers.image.source: https://example.com }
-    user: dev                    # final USER
-    workdir: /home/dev           # final WORKDIR
-    expose: [8080]
-    volumes: [/data]
-    entrypoint: [/usr/bin/tini, --]
-    cmd: [/bin/bash]
-  oci:
-    tags: ["registry.example.com/devbox:${{ flavor.name }}"]   # default: <name>:<flavor>
-    push: false
-    archive: devbox.tar          # also save the image to this file
-    platform: linux/amd64
-    builder: docker              # or podman
-  wsl:
-    default-user: dev
-    systemd: true                # default true; installs systemd if missing
-    hostname: devbox
-    name: DevBox                 # default distribution name
-  qcow2:
-    base-image: ""               # URL or path; default: the flavor's cloud image
-    sha256: ""                   # verify the base image
-    disk-size: 10G
-    memory: 2048                 # MiB, build VM
-    cpus: 2
-    driver: qemu                 # or libvirt
-    libvirt-uri: qemu:///session
-    timeout: 30m
-    compress: true
-  ova:
-    memory: 2048                 # MiB, written to the OVF
-    cpus: 2
-    os-type: ubuntu64Guest       # VMware guest OS id; default per flavor
-    name: devbox
-  shell:
-    colors: false                # colored output in a terminal (also apply, cloud-init)
-  cloud-init:
-    hostname: devbox
-    extra:                       # merged into #cloud-config (lists are appended)
-      ssh_pwauth: false
+  shell:      { colors: true }
+  dockerfile: { base-image: debian:13-slim, expose: [80], cmd: [nginx, -g, "daemon off;"] }
+  oci:        { tags: ["registry.example.com/web:${{ flavor.name }}"], push: true }
+  wsl:        { default-user: dev, systemd: true }
+  cloud-init: { hostname: web-01, extra: { ssh_pwauth: false } }
+  qcow2:      { disk-size: 40G, memory: 4096, timeout: 1h }
+  ova:        { memory: 4096, cpus: 2 }
 ```
+
+[Targets](targets.md) explains what each setting does for its target, and the
+[settings reference](reference/settings.md) lists all settings with their types
+and defaults.
 
 ## Steps
 

@@ -42,6 +42,7 @@ var docPages = []docPage{
 	{"targets.md", "docs/targets.html", "Targets"},
 	{"libraries.md", "docs/libraries.html", "Libraries & tests"},
 	{"reference/actions.md", "docs/reference/actions.html", "Action reference"},
+	{"reference/settings.md", "docs/reference/settings.html", "Target settings"},
 	{"reference/cli.md", "docs/reference/cli.html", "Command line"},
 }
 

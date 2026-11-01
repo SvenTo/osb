@@ -63,60 +63,6 @@ func argSchema(s actions.ArgSpec) obj {
 	return o
 }
 
-func artifactSchemas() obj {
-	strList := obj{"type": "array", "items": obj{"type": "string"}}
-	return obj{
-		"dockerfile": obj{"type": "object", "additionalProperties": false, "properties": obj{
-			"base-image": str("Base image (default per flavor)"),
-			"env":        obj{"type": "object", "description": "ENV instructions"},
-			"user":       str("Final USER"),
-			"workdir":    str("Final WORKDIR"),
-			"entrypoint": obj{"type": []string{"array", "string"}, "description": "ENTRYPOINT"},
-			"cmd":        obj{"type": []string{"array", "string"}, "description": "CMD"},
-			"expose":     obj{"type": []string{"array", "string"}, "description": "EXPOSE ports"},
-			"labels":     obj{"type": "object", "description": "LABEL instructions"},
-			"volumes":    strList,
-		}},
-		"oci": obj{"type": "object", "additionalProperties": false, "properties": obj{
-			"tags":     obj{"type": []string{"array", "string"}, "description": "Image tags"},
-			"push":     obj{"type": []string{"boolean", "string"}, "description": "Push after building"},
-			"archive":  str("Write an OCI archive to this file instead of loading the image"),
-			"platform": str("Target platform, e.g. linux/arm64"),
-			"builder":  str("Container CLI: docker (default) or podman"),
-		}},
-		"wsl": obj{"type": "object", "additionalProperties": false, "properties": obj{
-			"default-user": str("Default user of the distribution"),
-			"systemd":      obj{"type": []string{"boolean", "string"}, "description": "Enable systemd (default true)"},
-			"hostname":     str("Host name"),
-			"name":         str("Distribution name shown in WSL (default: config name)"),
-		}},
-		"qcow2": obj{"type": "object", "additionalProperties": false, "properties": obj{
-			"base-image":  str("Cloud image URL or path (default per flavor)"),
-			"sha256":      str("Expected SHA-256 of the base image"),
-			"disk-size":   str("Disk size, e.g. 20G"),
-			"memory":      obj{"type": []string{"integer", "string"}, "description": "Memory in MiB"},
-			"cpus":        obj{"type": []string{"integer", "string"}, "description": "CPU count"},
-			"driver":      str("qemu or libvirt"),
-			"timeout":     str("Build timeout, e.g. 30m"),
-			"compress":    obj{"type": []string{"boolean", "string"}, "description": "Compress the image"},
-			"libvirt-uri": str("libvirt connection URI (default qemu:///session)"),
-		}},
-		"ova": obj{"type": "object", "additionalProperties": false, "properties": obj{
-			"memory":  obj{"type": []string{"integer", "string"}, "description": "Memory in MiB"},
-			"cpus":    obj{"type": []string{"integer", "string"}, "description": "CPU count"},
-			"os-type": str("VMware guest OS identifier"),
-			"name":    str("Virtual machine name"),
-		}},
-		"cloud-init": obj{"type": "object", "additionalProperties": false, "properties": obj{
-			"hostname": str("Host name"),
-			"extra":    obj{"type": "object", "description": "Merged verbatim into #cloud-config"},
-		}},
-		"shell": obj{"type": "object", "additionalProperties": false, "properties": obj{
-			"colors": obj{"type": []string{"boolean", "string"}, "description": "Colored output (log, warnings, steps) when the script runs in a terminal; also for apply and cloud-init (default false)"},
-		}},
-	}
-}
-
 func stepSchema() obj {
 	props := obj{
 		"name":            obj{"type": "string", "pattern": "^[A-Za-z0-9_-]+$", "description": "Step name, used to reference outputs (steps[name].output)"},
