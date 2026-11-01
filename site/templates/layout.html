@@ -1,0 +1,63 @@
+{{define "layout"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if eq .Section "home"}}osb – describe the machine{{else}}{{.Title}} · osb{{end}}</title>
+<meta name="description" content="{{.Description}}">
+<link rel="icon" href="{{.Root}}favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="{{.Root}}css/site.css">
+<script>
+  try { var t = localStorage.getItem('osb-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
+</head>
+<body class="page-{{.Section}}">
+<a class="skip" href="#main">Skip to content</a>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="{{.Root}}index.html" aria-label="osb home">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="5" width="26" height="22" rx="5" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M9 13l4 3-4 3M16 20h7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>osb</span>
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="{{.Root}}index.html"{{if eq .Section "home"}} aria-current="page"{{end}}>Concept</a>
+      <a href="{{.Root}}builder.html"{{if eq .Section "builder"}} aria-current="page"{{end}}>Builder</a>
+      <a href="{{.Root}}playground.html"{{if eq .Section "playground"}} aria-current="page"{{end}}>Playground</a>
+      <a href="{{.Root}}docs/index.html"{{if eq .Section "docs"}} aria-current="page"{{end}}>Docs</a>
+      <a href="{{.Repo}}" class="nav-gh">GitHub</a>
+    </nav>
+    <button class="theme-toggle" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z" fill="currentColor"/></svg>
+    </button>
+  </div>
+</header>
+{{if eq .Section "docs"}}
+<div class="docs-layout">
+  <aside class="docs-nav" aria-label="Documentation">
+    <details open>
+      <summary>Documentation</summary>
+      <ul>{{range .Docs}}<li><a href="{{.URL}}"{{if .Active}} aria-current="page"{{end}}>{{.Title}}</a></li>{{end}}</ul>
+    </details>
+  </aside>
+  <main id="main" class="docs-content prose">
+    {{.Content}}
+    <p class="edit"><a href="{{.EditURL}}">View this page on GitHub</a></p>
+  </main>
+  {{if .TOC}}<aside class="docs-toc" aria-label="On this page"><div class="toc-title">On this page</div><ul>{{range .TOC}}<li><a href="{{.URL}}">{{.Title}}</a></li>{{end}}</ul></aside>{{end}}
+</div>
+{{else}}
+<main id="main">
+{{.Content}}
+</main>
+{{end}}
+<footer class="footer">
+  <div class="footer-inner">
+    <span>osb {{.Version}} · one configuration, many images</span>
+    <span><a href="{{.Root}}docs/getting-started.html">Get started</a> · <a href="{{.Root}}docs/reference/actions.html">Actions</a> · <a href="{{.Repo}}/releases">Releases</a></span>
+  </div>
+</footer>
+<script src="{{.Root}}js/site.js"></script>
+{{range .Scripts}}<script type="module" src="{{$.Root}}js/{{.}}"></script>
+{{end}}</body>
+</html>
+{{end}}

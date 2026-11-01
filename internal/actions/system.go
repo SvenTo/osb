@@ -171,7 +171,7 @@ func init() {
 			}
 			res := []ops.Op{ops.File{Path: "/etc/modules-load.d/" + a.Str("name") + ".conf", Content: []byte(strings.Join(mods, "\n") + "\n"), Mode: "0644"}}
 			if c.Target.Live {
-				res = append(res, ops.Shell{Script: fmt.Sprintf("for osb_m in %s; do modprobe \"$osb_m\" || warn \"could not load $osb_m\"; done\n", strings.Join(mods, " "))})
+				res = append(res, ops.Shell{Script: fmt.Sprintf("# shellcheck disable=SC2043\nfor osb_m in %s; do modprobe \"$osb_m\" || warn \"could not load $osb_m\"; done\n", strings.Join(mods, " "))})
 			}
 			return res, nil
 		},

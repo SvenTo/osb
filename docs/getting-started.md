@@ -1,5 +1,35 @@
 # Getting started
 
+## Install
+
+osb is a single static binary. Download it from the
+[GitHub releases](https://github.com/SvenTo/osb/releases) (Linux and macOS,
+amd64 and arm64):
+
+```bash
+curl -fsSL https://github.com/SvenTo/osb/releases/latest/download/osb_linux_amd64.tar.gz | tar -xz osb
+```
+
+```bash
+sudo install osb /usr/local/bin/
+```
+
+```bash
+osb --version
+```
+
+Every release has a `checksums.txt` with the SHA-256 checksums of the archives.
+With Go installed you can also build it from source:
+`go install github.com/SvenTo/osb/cmd/osb@latest`.
+
+Rendering (`osb render`, `osb validate`, `osb test`) works anywhere. Building
+images needs the tools of the target: docker or podman for `oci` and `wsl`,
+QEMU (or libvirt) and `qemu-img` for `qcow2` and `ova`. `osb apply` runs on
+the machine it configures (Ubuntu, Debian or Arch Linux).
+
+You can also try osb without installing it: the
+[website](https://svento.github.io/osb/) runs it in the browser.
+
 ## 1. Create a configuration
 
 ```bash

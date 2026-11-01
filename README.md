@@ -15,7 +15,9 @@
 
 The same configuration works for **Ubuntu**, **Debian** and **Arch Linux** (and
 custom flavors derived from them). `osb` is a single static binary; built-in
-actions, the shell helper library and the JSON schema are compiled in.
+actions, a library of higher-level [extra actions](docs/reference/actions.md#extra-actions)
+(written in YAML, e.g. `install-aur-package` or `letsencrypt-certificate`), the shell
+helper library and the JSON schema are compiled in.
 
 ```yaml
 name: devbox
@@ -51,7 +53,14 @@ sudo osb apply
 
 ## Install
 
-Requires the Go version from `go.mod`:
+Download a binary from the [releases](https://github.com/SvenTo/osb/releases)
+(Linux and macOS, amd64 and arm64):
+
+```bash
+curl -fsSL https://github.com/SvenTo/osb/releases/latest/download/osb_linux_amd64.tar.gz | tar -xz osb
+```
+
+Or build it with the Go version from `go.mod`:
 
 ```bash
 go install github.com/SvenTo/osb/cmd/osb@latest
@@ -74,7 +83,7 @@ Runtime tools are only needed for the targets that use them: `docker` (or
 - [Expressions and templates](docs/expressions.md)
 - [Targets: render, build, apply](docs/targets.md)
 - [Libraries, imports and tests](docs/libraries.md)
-- [Built-in actions](docs/reference/actions.md) (generated)
+- [Built-in and extra actions](docs/reference/actions.md) (generated)
 - [Command line](docs/reference/cli.md) (generated)
 - [Design specification](spec.md)
 

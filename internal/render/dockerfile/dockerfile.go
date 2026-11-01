@@ -20,12 +20,21 @@ import (
 
 // Result describes a rendered build context.
 type Result struct {
-	// Dir is the build context; the Dockerfile is Dir/Dockerfile.
+	// Dir is the build context; the Dockerfile is Dir/Dockerfile ("" before Write).
 	Dir string
+	// Files are the files of the build context (and secrets/), relative to Dir.
+	Files []File
 	// Secrets maps BuildKit secret ids to files (outside the context).
 	Secrets map[string]string
 	// BuildArgs are the extra arguments needed for docker build.
 	BuildArgs []string
+}
+
+// File is a file of the rendered build context.
+type File struct {
+	Path    string // slash separated, relative to the context directory
+	Content []byte
+	Mode    os.FileMode
 }
 
 // Options configures rendering.
@@ -38,7 +47,7 @@ type Options struct {
 
 type renderer struct {
 	plan    *engine.Plan
-	dir     string
+	files   []File
 	b       strings.Builder
 	nfile   int
 	secrets map[string]string
@@ -47,13 +56,48 @@ type renderer struct {
 
 // Render writes Dockerfile, .dockerignore, the helper library and files into dir.
 func Render(plan *engine.Plan, dir string, opts Options) (*Result, error) {
-	if err := os.MkdirAll(filepath.Join(dir, ".osb"), 0o755); err != nil {
+	res, err := Generate(plan, opts)
+	if err != nil {
 		return nil, err
 	}
+	if err := res.Write(dir); err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+// Write writes the build context into dir and makes the secret paths absolute.
+func (res *Result) Write(dir string) error {
 	for _, sub := range []string{"files", "secrets"} {
 		_ = os.RemoveAll(filepath.Join(dir, sub))
 	}
-	r := &renderer{plan: plan, dir: dir, secrets: map[string]string{}}
+	for _, f := range res.Files {
+		p := filepath.Join(dir, filepath.FromSlash(f.Path))
+		dirMode := os.FileMode(0o755)
+		if f.Mode&0o077 == 0 {
+			dirMode = 0o700
+		}
+		if err := os.MkdirAll(filepath.Dir(p), dirMode); err != nil {
+			return err
+		}
+		if err := os.WriteFile(p, f.Content, f.Mode); err != nil {
+			return err
+		}
+	}
+	res.Dir = dir
+	res.BuildArgs = nil
+	for _, id := range sortedKeys(res.Secrets) {
+		abs, _ := filepath.Abs(filepath.Join(dir, filepath.FromSlash(res.Secrets[id])))
+		res.Secrets[id] = abs
+		res.BuildArgs = append(res.BuildArgs, "--secret", "id="+id+",src="+abs)
+	}
+	return nil
+}
+
+// Generate renders the Dockerfile and build context in memory. Secrets map to
+// paths relative to the context directory until Write is called.
+func Generate(plan *engine.Plan, opts Options) (*Result, error) {
+	r := &renderer{plan: plan, secrets: map[string]string{}}
 	settings := plan.Artifact("dockerfile")
 	steps := append(append([]*ops.Step{}, plan.Steps...), opts.ExtraSteps...)
 	r.total = len(steps)
@@ -120,21 +164,12 @@ func Render(plan *engine.Plan, dir string, opts Options) (*Result, error) {
 		r.line("CMD %s", execForm(cmd))
 	}
 
-	if err := os.WriteFile(filepath.Join(dir, "Dockerfile"), []byte(r.b.String()), 0o644); err != nil {
-		return nil, err
-	}
-	if err := os.WriteFile(filepath.Join(dir, ".osb", "lib.sh"), []byte(shell.Library(plan.Flavor)), 0o644); err != nil {
-		return nil, err
-	}
-	if err := os.WriteFile(filepath.Join(dir, ".dockerignore"), []byte("# osb: secrets are passed as BuildKit secrets, never as context\nsecrets/\n"), 0o644); err != nil {
-		return nil, err
-	}
-	res := &Result{Dir: dir, Secrets: r.secrets}
-	ids := sortedKeys(r.secrets)
-	for _, id := range ids {
-		res.BuildArgs = append(res.BuildArgs, "--secret", "id="+id+",src="+r.secrets[id])
-	}
-	return res, nil
+	files := append([]File{
+		{Path: "Dockerfile", Content: []byte(r.b.String()), Mode: 0o644},
+		{Path: ".dockerignore", Content: []byte("# osb: secrets are passed as BuildKit secrets, never as context\nsecrets/\n"), Mode: 0o644},
+		{Path: ".osb/lib.sh", Content: []byte(shell.Library(plan.Flavor)), Mode: 0o644},
+	}, r.files...)
+	return &Result{Files: files, Secrets: r.secrets}, nil
 }
 
 func (r *renderer) line(format string, a ...any) {
@@ -250,15 +285,9 @@ func (r *renderer) run(s *ops.Step, script string, secret bool) error {
 	full := "set -eu\n. /run/osb/lib.sh\n" + script
 	if secret {
 		id := fmt.Sprintf("osb-step-%d", s.Index)
-		p := filepath.Join(r.dir, "secrets", id+".sh")
-		if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
-			return err
-		}
-		if err := os.WriteFile(p, []byte(full), 0o600); err != nil {
-			return err
-		}
-		abs, _ := filepath.Abs(p)
-		r.secrets[id] = abs
+		p := "secrets/" + id + ".sh"
+		r.files = append(r.files, File{Path: p, Content: []byte(full), Mode: 0o600})
+		r.secrets[id] = p
 		r.line("# This step contains secrets; its script is passed as BuildKit secret %q.", id)
 		r.line("RUN --mount=type=bind,source=.osb,target=/run/osb --mount=type=secret,id=%s,target=/run/osb-secrets/%s.sh \\\n    sh /run/osb-secrets/%s.sh", id, id, id)
 		return nil
@@ -271,13 +300,7 @@ func (r *renderer) run(s *ops.Step, script string, secret bool) error {
 func (r *renderer) copy(f ops.File) error {
 	r.nfile++
 	name := fmt.Sprintf("%03d-%s", r.nfile, path.Base(f.Path))
-	p := filepath.Join(r.dir, "files", name)
-	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
-		return err
-	}
-	if err := os.WriteFile(p, f.Content, 0o644); err != nil {
-		return err
-	}
+	r.files = append(r.files, File{Path: "files/" + name, Content: f.Content, Mode: 0o644})
 	mode := f.Mode
 	if mode == "" {
 		mode = "0644"

@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Check formatting
+        run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+      - name: Unit tests, validation and library tests
+        run: make test
+      - name: Generated docs are up to date
+        run: |
+          make docs
+          git diff --exit-code -- docs || { echo "::error::run 'make docs' and commit the result"; exit 1; }
+      - name: Shellcheck the generated scripts
+        run: |
+          mkdir -p out/shellcheck
+          for flavor in ubuntu debian archlinux; do
+            for cfg in examples/devbox/osb.yaml examples/kitchen-sink/osb.yaml; do
+              ./osb render shell --no-prompt -f "$cfg" --flavor "$flavor" \
+                -o "out/shellcheck/$(basename "$(dirname "$cfg")")-$flavor.sh"
+            done
+          done
+          shellcheck -S warning out/shellcheck/*.sh
+      - name: Build the website (WASM)
+        run: make site
+
+  integration:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Run the generated scripts in containers of every flavor
+        run: make integration

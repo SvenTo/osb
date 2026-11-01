@@ -1,0 +1,38 @@
+{{define "title"}}Builder{{end}}
+{{define "description"}}Describe a machine in a sentence and let osb generate the YAML configuration and render it as a shell script, Dockerfile, cloud-init or VM image configuration.{{end}}
+{{define "scripts"}}builder.js{{end}}
+{{define "main"}}
+<section class="section" style="padding-top:40px">
+  <div class="wrap">
+    <p class="eyebrow">Builder</p>
+    <p class="sentence" id="sentence">
+      I want
+      <span class="slot"><label class="visually-hidden" for="b-target">Output</label><select id="b-target"></select></span>
+      running
+      <span class="slot"><label class="visually-hidden" for="b-flavor">Distribution</label><select id="b-flavor"></select></span>
+      for the user
+      <span class="slot"><label class="visually-hidden" for="b-user">User name</label><input id="b-user" value="dev" autocomplete="off" spellcheck="false"></span>
+      named
+      <span class="slot"><label class="visually-hidden" for="b-name">Configuration name</label><input id="b-name" value="my-machine" autocomplete="off" spellcheck="false"></span>
+    </p>
+    <p class="summary-line" id="summary"></p>
+    <div class="feature-groups" id="features"></div>
+
+    <div class="builder-out">
+      <div class="demo">
+        <div class="panel">
+          <div class="panel-head">
+            <span class="panel-title">osb.yaml</span>
+            <button class="btn btn-small" type="button" id="b-copy">Copy</button>
+            <button class="btn btn-small" type="button" id="b-download">Download</button>
+            <button class="btn btn-small" type="button" id="b-open">Edit in the playground</button>
+          </div>
+          <div class="code-wrap"><pre class="out" id="b-yaml"></pre></div>
+        </div>
+        <div class="panel" id="b-out"></div>
+      </div>
+      <p class="hint">The output is rendered by osb itself, compiled to WebAssembly. Images (OCI, WSL, qcow2, OVA) are built by the <a href="docs/getting-started.html">osb binary</a> from the same file; here you see what it builds them from.</p>
+    </div>
+  </div>
+</section>
+{{end}}

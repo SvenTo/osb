@@ -1,0 +1,121 @@
+{{define "title"}}osb{{end}}
+{{define "description"}}osb turns one high-level YAML description of a machine into shell scripts, Dockerfiles, cloud-init, container images, WSL distributions and VM images for Ubuntu, Debian and Arch Linux.{{end}}
+{{define "scripts"}}home.js{{end}}
+{{define "main"}}
+<section class="hero">
+  <div class="wrap">
+    <p class="eyebrow">osb · OS builder</p>
+    <h1>Describe the machine. <em>osb writes the scripts.</em></h1>
+    <p class="lead">Say <em>what</em> a system should be – users, packages, services, a desktop, certificates – in one high-level YAML file. osb turns it into readable, idempotent shell scripts, Dockerfiles and cloud-init, and builds container images, WSL distributions and VM images from it. The same file works on Ubuntu, Debian and Arch Linux.</p>
+    <div class="btn-row">
+      <a class="btn btn-primary" href="builder.html">Build a configuration</a>
+      <a class="btn" href="#demo">Try it live</a>
+      <a class="btn" href="docs/getting-started.html">Get started</a>
+    </div>
+    <ul class="targets-strip" aria-label="Outputs">
+      <li>shell script</li><li>Dockerfile</li><li>OCI image</li><li>WSL</li><li>cloud-init</li><li>qcow2</li><li>OVA</li><li>apply</li>
+    </ul>
+  </div>
+</section>
+
+<section class="section section-alt" id="demo">
+  <div class="wrap">
+    <p class="eyebrow">Live – runs osb in your browser</p>
+    <h2>Change the flavor, keep the configuration</h2>
+    <p class="lead">Edit the YAML on the left. osb (compiled to WebAssembly) renders it on the right, the same way the CLI does. Switch the distribution: package names (<code>openssh-server</code> → <code>openssh</code>), service names and paths change – the configuration doesn't.</p>
+    <div class="demo">
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-title">osb.yaml</span>
+          <div class="seg" id="demo-flavor" role="group" aria-label="Flavor">
+            <button type="button" data-flavor="ubuntu" aria-pressed="true">Ubuntu</button>
+            <button type="button" data-flavor="debian" aria-pressed="false">Debian</button>
+            <button type="button" data-flavor="archlinux" aria-pressed="false">Arch</button>
+          </div>
+        </div>
+        <div class="code-wrap"><textarea class="code" id="demo-yaml" spellcheck="false" aria-label="Configuration"></textarea></div>
+      </div>
+      <div class="panel" id="demo-out-panel">
+      </div>
+    </div>
+    <div class="btn-row" style="margin-top:16px">
+      <div class="seg" id="demo-target" role="group" aria-label="Target">
+        <button type="button" data-target="shell" aria-pressed="true">Shell script</button>
+        <button type="button" data-target="dockerfile" aria-pressed="false">Dockerfile</button>
+        <button type="button" data-target="cloud-init" aria-pressed="false">cloud-init</button>
+        <button type="button" data-target="qcow2" aria-pressed="false">VM image</button>
+      </div>
+      <a class="btn btn-small" id="demo-open" href="playground.html">Open in the playground</a>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <p class="eyebrow">How it works</p>
+    <h2>From intent to artifacts</h2>
+    <p class="lead">osb evaluates the configuration at generation time – arguments, JavaScript expressions, conditions, flavors – into a plan of simple operations. Renderers map them to the native features of each target and fall back to a small, readable shell library.</p>
+    <div class="pipeline">
+      <div class="stage"><h3>Describe</h3><p>YAML with arguments, flavors, imports and steps that use high-level actions.</p><ul><li>add-user</li><li>install-aur-package</li><li>letsencrypt-certificate</li></ul></div>
+      <div class="arrow" aria-hidden="true">→</div>
+      <div class="stage"><h3>Validate &amp; evaluate</h3><p>JSON schema, types and patterns, <code>${{"{{"}} }}</code> expressions, <code>if</code>, <code>foreach</code>, <code>by-flavor</code>.</p></div>
+      <div class="arrow" aria-hidden="true">→</div>
+      <div class="stage"><h3>Plan</h3><p>Steps of primitive operations: file, packages, user, shell, download…</p></div>
+      <div class="arrow" aria-hidden="true">→</div>
+      <div class="stage"><h3>Render &amp; build</h3><p>Native where possible, shell otherwise.</p><ul><li>sh → apply</li><li>Dockerfile → OCI, WSL</li><li>cloud-init → qcow2, OVA</li></ul></div>
+    </div>
+  </div>
+</section>
+
+<section class="section section-alt">
+  <div class="wrap">
+    <p class="eyebrow">Why osb</p>
+    <h2>High-level, but no magic</h2>
+    <div class="cards">
+      <div class="card"><div class="icon">≡</div><h3>One file, eight outputs</h3><p>Render a shell script, a Dockerfile or cloud-init, or build an OCI image, a WSL distribution, a qcow2 or an OVA – or apply it to the running machine after showing the plan.</p></div>
+      <div class="card"><div class="icon">⇄</div><h3>Flavors</h3><p>Ubuntu, Debian and Arch Linux, plus your own derived flavors. Generic package names are mapped; <code>by-flavor</code> picks values where distributions differ.</p></div>
+      <div class="card"><div class="icon">✦</div><h3>High-level actions</h3><p>47 built-in actions and a library of extra actions written in YAML: <code>install-aur-package</code> (pinned), <code>krdp-server</code>, <code>letsencrypt-certificate</code>, <code>plasma-autologin</code>…</p></div>
+      <div class="card"><div class="icon">ƒ</div><h3>Expressions</h3><p>One language – JavaScript – in one delimiter: <code>${{"{{"}} args.user }}</code>. Conditions, loops, outputs of earlier steps and validations run at generation time.</p></div>
+      <div class="card"><div class="icon">⧉</div><h3>Libraries &amp; tests</h3><p>Write your own actions, import them from files or git (pinned in a lockfile) and test them with <code>osb test</code> – golden files and runs in real containers.</p></div>
+      <div class="card"><div class="icon">✓</div><h3>Safe by default</h3><p>Errors with <code>file:line</code>, secrets masked everywhere and passed as BuildKit secrets, idempotent scripts, and <code>osb apply</code> asks before it changes anything.</p></div>
+      <div class="card"><div class="icon">⌁</div><h3>Readable output</h3><p>No agent and no runtime: the generated POSIX shell script is plain, commented and dependency-free. Read it, review it, run it anywhere.</p></div>
+      <div class="card"><div class="icon">▣</div><h3>A single binary</h3><p>Actions, the shell library and the JSON schema for editor completion are compiled in. Linux and macOS, amd64 and arm64.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <p class="eyebrow">Where it fits</p>
+    <h2>Between a shell script and a configuration management system</h2>
+    <div class="table-scroll">
+      <table class="compare">
+        <thead><tr><th></th><th>Hand-written scripts</th><th>Configuration management</th><th>osb</th></tr></thead>
+        <tbody>
+          <tr><td>Abstraction</td><td>Commands</td><td>Resources and modules</td><td>High-level actions, compiled to plain commands</td></tr>
+          <tr><td>Containers, VMs, WSL</td><td>One script per format</td><td>Usually via extra tools</td><td>The same file renders and builds all of them</td></tr>
+          <tr><td>Runs on the target</td><td>A shell</td><td>An agent or SSH + a runtime</td><td>A shell (the generated script)</td></tr>
+          <tr><td>Several distributions</td><td>Manual <code>if</code>s</td><td>Per-OS variables</td><td>Flavors, package aliases, <code>by-flavor</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="section section-alt">
+  <div class="wrap">
+    <p class="eyebrow">Get started</p>
+    <h2>Install the binary</h2>
+    <div class="install">
+      <pre><code>curl -fsSL https://github.com/SvenTo/osb/releases/latest/download/osb_linux_amd64.tar.gz | tar -xz osb
+sudo install osb /usr/local/bin/</code></pre>
+      <pre><code>osb init my-machine &amp;&amp; cd my-machine
+osb render shell --flavor debian       # print the script
+osb build oci --flavor ubuntu          # build a container image
+osb build qcow2 --flavor archlinux     # build a VM image
+sudo osb apply                         # configure this machine</code></pre>
+    </div>
+    <p class="hint">Downloads for Linux and macOS are on the <a href="https://github.com/SvenTo/osb/releases">releases page</a>. Next: <a href="docs/getting-started.html">Getting started</a> · <a href="builder.html">Builder</a> · <a href="docs/reference/actions.html">All actions</a></p>
+  </div>
+</section>
+{{end}}

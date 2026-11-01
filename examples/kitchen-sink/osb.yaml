@@ -121,5 +121,5 @@ steps:
         grep -q 'nested' /etc/app/app.yaml
         grep -q tmpfs /etc/fstab
         test -f /etc/modules-load.d/osb.conf
-        ls /etc/ssl/certs | grep -qi osb || grep -rq "osb test CA" /etc/ssl/certs/ 2>/dev/null || trust list 2>/dev/null | grep -q "osb test CA"
+        find /etc/ssl/certs -iname "*osb*" | grep -q . || grep -rq "osb test CA" /etc/ssl/certs/ 2>/dev/null || trust list 2>/dev/null | grep -q "osb test CA"
         echo KITCHEN-SINK-OK

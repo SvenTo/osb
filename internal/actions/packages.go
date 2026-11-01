@@ -69,7 +69,7 @@ func init() {
 				return nil, err
 			}
 			var b strings.Builder
-			b.WriteString("for osb_p in")
+			b.WriteString("# shellcheck disable=SC2043\nfor osb_p in")
 			for _, n := range names {
 				b.WriteString(" " + q(n))
 			}

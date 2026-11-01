@@ -1,0 +1,34 @@
+{{define "title"}}Playground{{end}}
+{{define "description"}}Edit an osb configuration and render it in the browser for every target and flavor.{{end}}
+{{define "scripts"}}playground.js{{end}}
+{{define "main"}}
+<div class="wrap">
+  <div class="pg-bar">
+    <h1>Playground</h1>
+    <label class="visually-hidden" for="pg-example">Example</label>
+    <select class="input" id="pg-example"><option value="">Examples…</option></select>
+    <span class="spacer"></span>
+    <label class="visually-hidden" for="pg-target">Target</label>
+    <select class="input" id="pg-target"></select>
+    <label class="visually-hidden" for="pg-flavor">Flavor</label>
+    <select class="input" id="pg-flavor"></select>
+    <button class="btn btn-small" type="button" id="pg-share">Copy share link</button>
+    <button class="btn btn-small" type="button" id="pg-download">Download osb.yaml</button>
+  </div>
+  <div class="demo">
+    <div class="panel">
+      <div class="panel-head"><span class="panel-title">osb.yaml</span><span class="hint" style="margin:0;font-size:12px">Saved in this browser</span></div>
+      <div class="code-wrap"><textarea class="code" id="pg-yaml" spellcheck="false" aria-label="Configuration" style="min-height:560px"></textarea></div>
+      <form class="args-form" id="pg-args" hidden></form>
+    </div>
+    <div class="panel" id="pg-out"></div>
+  </div>
+  <section class="palette" aria-labelledby="pal-title">
+    <h2 id="pal-title" style="font-size:20px;margin:28px 0 8px">Actions</h2>
+    <p class="hint" style="margin:0 0 10px">Click an action to append an example step. <a href="docs/reference/actions.html">Reference</a></p>
+    <input class="input" id="pal-search" type="search" placeholder="Search actions (e.g. user, aur, systemd, certificate)">
+    <div class="palette-list" id="pal-list"></div>
+  </section>
+  <p class="hint" style="margin-bottom:48px">In the browser osb cannot read local files (<code>source:</code>, <code>file()</code>) or imports, and does not build images – the <a href="docs/getting-started.html">binary</a> does.</p>
+</div>
+{{end}}
