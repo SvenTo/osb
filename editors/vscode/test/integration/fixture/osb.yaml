@@ -1,0 +1,10 @@
+name: fixture
+steps:
+  - action: write-file
+    args:
+      path: /etc/motd
+      contnt: hello
+  - action: mkdir-home
+    args:
+      user: dev
+      paths: [Projects]

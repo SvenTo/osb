@@ -1,7 +1,7 @@
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS := -s -w -X main.version=$(VERSION)
 
-.PHONY: build test integration docs site dist clean
+.PHONY: build test test-js integration docs site dist vscode vscode-test clean
 
 build:
 	CGO_ENABLED=0 go build -ldflags "$(LDFLAGS)" -o osb ./cmd/osb
@@ -12,6 +12,12 @@ test: build
 	./osb validate -f examples/devbox/osb.yaml
 	./osb validate -f examples/kitchen-sink/osb.yaml
 	./osb test examples library
+
+# Tests of the website's language support and the VS Code extension (needs node)
+test-js: build vscode-files
+	./osb actions list -o json > site/test/catalog.json
+	node --test site/test/
+	cd editors/vscode && node --test test/
 
 # Runs the generated scripts in containers of every flavor (needs docker).
 integration: build
@@ -54,5 +60,26 @@ dist:
 	done
 	cd dist && sha256sum *.tar.gz > checksums.txt
 
+# VS Code extension: shared language support + catalog, packaged as dist/osb.vsix
+vscode-files: build
+	mkdir -p editors/vscode/lib editors/vscode/data
+	cp site/static/js/osb-lang.js editors/vscode/lib/
+	./osb actions list -o json > editors/vscode/data/catalog.json
+
+vscode: vscode-files
+	mkdir -p dist
+	cd editors/vscode && npx --yes @vscode/vsce@3 package --skip-license -o ../../dist/osb.vsix
+
+# Runs the extension in a real VS Code with a throw-away profile (needs code and
+# xvfb-run). The fixture is restored afterwards.
+vscode-test: vscode-files
+	tmp=$$(mktemp -d) && cp editors/vscode/test/integration/fixture/osb.yaml $$tmp/osb.yaml.orig && \
+	PATH="$$PWD:$$PATH" xvfb-run -a $${VSCODE:-/usr/share/code/code} --no-sandbox --disable-gpu --disable-extensions \
+		--user-data-dir $$tmp/user --extensions-dir $$tmp/ext \
+		--extensionDevelopmentPath=$$PWD/editors/vscode \
+		--extensionTestsPath=$$PWD/editors/vscode/test/integration \
+		editors/vscode/test/integration/fixture; rc=$$?; \
+	cp $$tmp/osb.yaml.orig editors/vscode/test/integration/fixture/osb.yaml; rm -rf $$tmp; exit $$rc
+
 clean:
-	rm -rf osb out dist
+	rm -rf osb out dist editors/vscode/lib editors/vscode/data

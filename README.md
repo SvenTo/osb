@@ -76,6 +76,13 @@ Runtime tools are only needed for the targets that use them: `docker` (or
 `podman`) for `oci`/`wsl`, `qemu-img` + `qemu-system-x86_64` (or libvirt) for
 `qcow2`/`ova`.
 
+## Editor support
+
+A VS Code extension (completion, documentation on hover, validation, render
+commands) is attached to every release as `osb.vsix`; its source is in
+[editors/vscode](editors/vscode). The JSON schema (`osb schema`) works with any
+editor that uses the YAML language server.
+
 ## Documentation
 
 - [Getting started](docs/getting-started.md)
@@ -99,3 +106,8 @@ make test
 integration` additionally runs the generated scripts in Ubuntu, Debian and Arch
 containers (needs docker). After changing actions, run `make docs` to regenerate
 the reference and the schema.
+
+`make test-js` tests the website's editor support and the VS Code extension
+(needs node); `make vscode-test` runs the extension in a real VS Code (needs
+`xvfb-run`). `make site` builds the website into `out/site` and `make vscode`
+packages the extension.

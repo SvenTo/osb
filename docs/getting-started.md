@@ -30,6 +30,18 @@ the machine it configures (Ubuntu, Debian or Arch Linux).
 You can also try osb without installing it: the
 [website](https://svento.github.io/osb/) runs it in the browser.
 
+### Editor support
+
+- **VS Code:** install `osb.vsix` from the
+  [releases](https://github.com/SvenTo/osb/releases)
+  (`code --install-extension osb.vsix`). It completes keys, actions and their
+  arguments, shows their documentation on hover, runs `osb validate` on save
+  and renders shell scripts, Dockerfiles and cloud-init from the command
+  palette.
+- **Other editors** with the YAML language server: `osb init` adds
+  `# yaml-language-server: $schema=./osb.schema.json` to `osb.yaml`; the schema
+  is also published at <https://svento.github.io/osb/osb.schema.json>.
+
 ## 1. Create a configuration
 
 ```bash

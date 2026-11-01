@@ -19,8 +19,12 @@ jobs:
           go-version-file: go.mod
       - name: Test
         run: make test
-      - name: Build binaries
-        run: make dist VERSION="${GITHUB_REF_NAME}"
+      - name: Build binaries and the VS Code extension
+        run: |
+          make dist VERSION="${GITHUB_REF_NAME}"
+          version="${GITHUB_REF_NAME#v}"
+          (cd editors/vscode && npm version --no-git-tag-version --allow-same-version "${version%%-*}")
+          make vscode VERSION="${GITHUB_REF_NAME}"
       - name: Create the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
