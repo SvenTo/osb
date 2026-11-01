@@ -3,9 +3,12 @@
 package web
 
 import (
+	"encoding/base64"
 	"fmt"
+	"path"
 	"sort"
 	"strings"
+	"testing/fstest"
 
 	"github.com/SvenTo/osb/internal/actions"
 	"github.com/SvenTo/osb/internal/config"
@@ -16,6 +19,7 @@ import (
 	"github.com/SvenTo/osb/internal/render/shell"
 	"github.com/SvenTo/osb/internal/schema"
 	"github.com/SvenTo/osb/internal/target"
+	"github.com/SvenTo/osb/internal/vfs"
 	"github.com/SvenTo/osb/library"
 )
 
@@ -27,12 +31,16 @@ type Request struct {
 	Args   map[string]string `json:"args"`
 	// Placeholders fills missing required arguments with dummy values.
 	Placeholders bool `json:"placeholders"`
+	// Files are the user's local files, relative to osb.yaml (sources, file(), copy-files).
+	Files []File `json:"files"`
 }
 
-// File is one generated file.
+// File is a generated file, or a user file in a request.
 type File struct {
 	Path    string `json:"path"`
 	Content string `json:"content"`
+	// Base64 marks binary content (requests only).
+	Base64 bool `json:"base64,omitempty"`
 }
 
 // Argument describes a configuration argument (for generated forms).
@@ -77,7 +85,24 @@ func Render(req Request) (resp Response) {
 		if r := recover(); r != nil {
 			resp = Response{Error: fmt.Sprintf("internal error: %v", r)}
 		}
+		if resp.Error != "" && (strings.Contains(resp.Error, "file does not exist") || strings.Contains(resp.Error, "matches no files")) {
+			resp.Error += " (add the file in the Files panel; paths are relative to osb.yaml)"
+		}
 	}()
+	files := fstest.MapFS{}
+	for _, f := range req.Files {
+		data := []byte(f.Content)
+		if f.Base64 {
+			b, err := base64.StdEncoding.DecodeString(f.Content)
+			if err != nil {
+				return Response{Error: fmt.Sprintf("file %s: %v", f.Path, err)}
+			}
+			data = b
+		}
+		name := strings.TrimPrefix(path.Clean("/"+f.Path), "/")
+		files[name] = &fstest.MapFile{Data: data, Mode: 0o644}
+	}
+	vfs.Current = vfs.FS{FS: files}
 	cfg, err := config.Parse("osb.yaml", []byte(req.Config), config.LoadOptions{Validate: schema.Validate})
 	if err != nil {
 		return Response{Error: err.Error()}

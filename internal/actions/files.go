@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
-	"os"
 	"path"
 	"path/filepath"
 	"sort"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/SvenTo/osb/internal/ops"
 	"github.com/SvenTo/osb/internal/render/shell"
+	"github.com/SvenTo/osb/internal/vfs"
 )
 
 var q = shell.Q
@@ -430,7 +430,7 @@ func buildCopyFiles(c *Ctx, a Args) ([]ops.Op, error) {
 		return nil, fmt.Errorf("dest %q must be absolute", dest)
 	}
 	pattern := c.Path(src)
-	matches, err := filepath.Glob(pattern)
+	matches, err := vfs.Current.Glob(pattern)
 	if err != nil {
 		return nil, err
 	}
@@ -446,7 +446,7 @@ func buildCopyFiles(c *Ctx, a Args) ([]ops.Op, error) {
 	var files []entry
 	dirs := map[string]bool{}
 	for _, m := range matches {
-		st, err := os.Stat(m)
+		st, err := vfs.Current.Stat(m)
 		if err != nil {
 			return nil, err
 		}
@@ -455,7 +455,7 @@ func buildCopyFiles(c *Ctx, a Args) ([]ops.Op, error) {
 			if isGlob {
 				base = filepath.Base(m)
 			}
-			err := filepath.WalkDir(m, func(p string, d fs.DirEntry, err error) error {
+			err := vfs.Current.WalkDir(m, func(p string, d fs.DirEntry, err error) error {
 				if err != nil {
 					return err
 				}
@@ -485,7 +485,7 @@ func buildCopyFiles(c *Ctx, a Args) ([]ops.Op, error) {
 		files = append(files, entry{rel: filepath.Base(m), path: m, mode: st.Mode()})
 	}
 	singleFile := len(matches) == 1 && !isGlob && len(dirs) == 0 && len(files) == 1 && !strings.HasSuffix(dest, "/")
-	if st, err := os.Stat(matches[0]); err == nil && st.IsDir() {
+	if st, err := vfs.Current.Stat(matches[0]); err == nil && st.IsDir() {
 		singleFile = false
 	}
 	var res []ops.Op
@@ -504,7 +504,7 @@ func buildCopyFiles(c *Ctx, a Args) ([]ops.Op, error) {
 		res = append(res, ops.Shell{Script: b.String()})
 	}
 	for _, f := range files {
-		content, err := os.ReadFile(f.path)
+		content, err := vfs.Current.ReadFile(f.path)
 		if err != nil {
 			return nil, err
 		}

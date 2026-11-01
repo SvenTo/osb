@@ -2,6 +2,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -26,6 +27,7 @@ import (
 	"github.com/SvenTo/osb/internal/schema"
 	"github.com/SvenTo/osb/internal/target"
 	"github.com/SvenTo/osb/internal/testrunner"
+	"github.com/SvenTo/osb/internal/web"
 	"github.com/SvenTo/osb/library"
 )
 
@@ -86,7 +88,10 @@ func validateCmd(g *globalOpts) *cobra.Command {
 			if g.flavor != "" {
 				flavors = []string{g.flavor}
 			}
-			var failed []string
+			// Errors are grouped: the same message for several flavors/targets is shown once.
+			var order []string
+			where := map[string][]string{}
+			total := 0
 			for _, fl := range flavors {
 				var warnings []string
 				nsteps := 0
@@ -94,9 +99,14 @@ func validateCmd(g *globalOpts) *cobra.Command {
 					if !engine.TargetAllowed(cfg, t) {
 						continue
 					}
+					total++
 					plan, err := engine.Evaluate(cfg, engine.Options{Flavor: fl, Target: t.Name, Args: in})
 					if err != nil {
-						failed = append(failed, fmt.Sprintf("%s/%s: %v", fl, t.Name, err))
+						msg := err.Error()
+						if _, ok := where[msg]; !ok {
+							order = append(order, msg)
+						}
+						where[msg] = append(where[msg], fl+"/"+t.Name)
 						continue
 					}
 					if t.Name == "shell" || nsteps == 0 {
@@ -113,8 +123,16 @@ func validateCmd(g *globalOpts) *cobra.Command {
 					}
 				}
 			}
-			if len(failed) > 0 {
-				return fmt.Errorf("validation failed:\n  %s", strings.Join(failed, "\n  "))
+			if len(order) > 0 {
+				var lines []string
+				for _, msg := range order {
+					in := "all flavors and targets"
+					if len(where[msg]) < total {
+						in = strings.Join(where[msg], ", ")
+					}
+					lines = append(lines, msg+"\n    ("+in+")")
+				}
+				return fmt.Errorf("validation failed:\n  %s", strings.Join(lines, "\n  "))
 			}
 			fmt.Printf("%s is valid (%d files)\n", config.DisplayPath(cfg.File), len(cfg.Sources))
 			return nil
@@ -323,11 +341,25 @@ func actionsCmd() *cobra.Command {
 		Use:   "actions",
 		Short: "List and describe built-in and extra actions",
 	}
-	cmd.AddCommand(&cobra.Command{
+	var format string
+	list := &cobra.Command{
 		Use:   "list",
 		Short: "List built-in and extra actions",
+		Long:  "List built-in and extra actions. With -o json, print the catalog used by editors: actions with their arguments, flavors, targets and the JSON schema.",
 		Args:  cobra.NoArgs,
-		Run: func(*cobra.Command, []string) {
+		RunE: func(*cobra.Command, []string) error {
+			if format == "json" {
+				web.Version = Version
+				b, err := json.MarshalIndent(web.GetCatalog(), "", "  ")
+				if err != nil {
+					return err
+				}
+				fmt.Println(string(b))
+				return nil
+			}
+			if format != "" && format != "text" {
+				return fmt.Errorf("unknown output format %q (text, json)", format)
+			}
 			w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 			cat := ""
 			for _, a := range actions.All() {
@@ -347,8 +379,11 @@ func actionsCmd() *cobra.Command {
 				}
 			}
 			w.Flush()
+			return nil
 		},
-	}, &cobra.Command{
+	}
+	list.Flags().StringVarP(&format, "output", "o", "text", "output format: text or json")
+	cmd.AddCommand(list, &cobra.Command{
 		Use:   "show <action>",
 		Short: "Show arguments and an example of an action",
 		Args:  cobra.ExactArgs(1),

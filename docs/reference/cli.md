@@ -23,7 +23,15 @@ Usage: `osb actions`
 
 List built-in and extra actions
 
-Usage: `osb actions list`
+```
+List built-in and extra actions. With -o json, print the catalog used by editors: actions with their arguments, flavors, targets and the JSON schema.
+```
+
+Usage: `osb actions list [flags]`
+
+```
+  -o, --output string   output format: text or json (default "text")
+```
 
 ## osb actions show
 

@@ -16,6 +16,8 @@ import (
 
 	"github.com/dop251/goja"
 	"go.yaml.in/yaml/v3"
+
+	"github.com/SvenTo/osb/internal/vfs"
 )
 
 // Engine is a JavaScript runtime with osb's helper functions. An Engine is
@@ -85,7 +87,7 @@ func (e *Engine) install() {
 		if !filepath.IsAbs(p) {
 			p = filepath.Join(e.dir, p)
 		}
-		b, err := os.ReadFile(p)
+		b, err := vfs.Current.ReadFile(p)
 		return string(b), err
 	})
 	e.Set("env", func(name string, def goja.Value) string {

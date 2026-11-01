@@ -82,3 +82,32 @@ func TestCatalog(t *testing.T) {
 		t.Errorf("catalog incomplete: extra=%v builtin=%v flavors=%d targets=%d", extra, builtin, len(c.Flavors), len(c.Targets))
 	}
 }
+
+func TestUserFiles(t *testing.T) {
+	cfg := `steps:
+  - action: write-file
+    args: { path: /etc/motd, source: files/motd }
+  - action: copy-files
+    args: { source: conf/, dest: /etc/app/ }
+  - action: log
+    args: { message: "${{ file('files/motd').trim() }}" }
+`
+	files := []File{
+		{Path: "files/motd", Content: "Hello from a file\n"},
+		{Path: "conf/a.ini", Content: "a=1\n"},
+		{Path: "conf/sub/b.bin", Content: "AAEC", Base64: true},
+	}
+	r := Render(Request{Config: cfg, Flavor: "debian", Target: "dockerfile", Files: files})
+	if r.Error != "" {
+		t.Fatal(r.Error)
+	}
+	out := r.Files[0].Content
+	for _, want := range []string{"Hello from a file", "/etc/app/a.ini", "/etc/app/sub/b.bin", "base64"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("Dockerfile does not contain %q:\n%s", want, out)
+		}
+	}
+	if r := Render(Request{Config: cfg, Flavor: "debian"}); !strings.Contains(r.Error, "Files panel") {
+		t.Errorf("missing file: %q", r.Error)
+	}
+}

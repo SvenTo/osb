@@ -3,7 +3,6 @@ package actions
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -13,6 +12,7 @@ import (
 	"github.com/SvenTo/osb/internal/flavor"
 	"github.com/SvenTo/osb/internal/ops"
 	"github.com/SvenTo/osb/internal/target"
+	"github.com/SvenTo/osb/internal/vfs"
 )
 
 // Argument types of built-in actions.
@@ -59,7 +59,7 @@ func (c *Ctx) Path(p string) string {
 
 // ReadSource reads a source file relative to the defining file.
 func (c *Ctx) ReadSource(p string) ([]byte, error) {
-	b, err := os.ReadFile(c.Path(p))
+	b, err := vfs.Current.ReadFile(c.Path(p))
 	if err != nil {
 		return nil, fmt.Errorf("source: %w", err)
 	}
