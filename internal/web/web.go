@@ -161,9 +161,6 @@ func Render(req Request) (resp Response) {
 			return resp
 		}
 		for _, f := range res.Files {
-			if f.Path == ".osb/lib.sh" {
-				continue // the same helper library for every config
-			}
 			add(f.Path, string(f.Content))
 		}
 		switch tname {

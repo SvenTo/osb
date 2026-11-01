@@ -27,7 +27,7 @@ func TestRenderTargets(t *testing.T) {
 		"shell":      "useradd --create-home alice",
 		"apply":      "useradd --create-home alice",
 		"dockerfile": "FROM archlinux:latest",
-		"oci":        "pkg_install git openssh",
+		"oci":        "pacman -Syu --noconfirm --needed git openssh",
 		"wsl":        "FROM archlinux:latest",
 		"cloud-init": "#cloud-config",
 		"qcow2":      "OSB-BUILD-RESULT",

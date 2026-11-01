@@ -196,6 +196,11 @@ func renderCmd(g *globalOpts) *cobra.Command {
 				build := "docker build"
 				if len(res.BuildArgs) > 0 {
 					build += " " + strings.Join(res.BuildArgs, " ")
+					var envs []string
+					for _, s := range res.Secrets {
+						envs = append(envs, s.Env)
+					}
+					info("secrets are read from the environment at build time: %s", strings.Join(envs, ", "))
 				}
 				info("build with: %s -t IMAGE %s", build, out)
 			case "cloud-init":

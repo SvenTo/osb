@@ -270,10 +270,11 @@ the step that uses it. A `foreach` step's output is a list with one entry per it
 Arguments of type `secret` are masked as `***` in logs, plans, error messages,
 `apply --show-script` and scripts printed to a terminal.
 
-- **Dockerfile / OCI / WSL:** a step whose script contains a secret is passed
-  to BuildKit as a secret mount (`RUN --mount=type=secret`) and is neither stored
-  in an image layer nor in the build context. Its script is written to
-  `secrets/` next to the Dockerfile (mode 0600, excluded by `.dockerignore`).
+- **Dockerfile / OCI / WSL:** secret values are never written into the
+  Dockerfile. Steps that use them read the value from a BuildKit secret
+  (`RUN --mount=type=secret,id=NAME,env=OSB_ARG_NAME`); build with
+  `docker build --secret id=NAME,env=OSB_ARG_NAME` (`osb build` does that for
+  you). The values are neither stored in an image layer nor in the build context.
 - **shell / cloud-init:** the secret is part of the generated file. osb warns and
   writes the file with restrictive permissions.
 - `set-password` with `random: true` generates the password on the machine and

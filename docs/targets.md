@@ -47,22 +47,31 @@ terminal) or writes it with `-o file.sh` / `-o dir/`.
 
 ## dockerfile
 
-`osb render dockerfile -o DIR` writes a build context:
+`osb render dockerfile -o DIR` writes `DIR/Dockerfile`. It is **self-contained**:
+no build context, no osb helper library and no extra files. Build it with
+`docker build -t NAME DIR`, or take it as a template, edit it and keep it in your
+repository without osb.
 
-```
-DIR/Dockerfile        # syntax=docker/dockerfile:1 (BuildKit)
-DIR/.osb/lib.sh       # helper library, bind-mounted into RUN steps
-DIR/files/            # files for COPY
-DIR/secrets/          # scripts of steps with secrets (excluded by .dockerignore)
-DIR/.dockerignore
-```
+- Packages are installed with plain `apt-get` / `pacman` commands, and the
+  package caches are removed in the same layer.
+- Files (`write-file`, `template-file`, `copy-files`, `authorize-ssh-key`, ...)
+  become `COPY --chmod --chown <<EOF` heredocs; downloads become
+  `ADD --checksum`; `set-environment` becomes `ENV`.
+- Everything else is a `RUN` per step: a single command line, or a heredoc
+  script. When a step needs one of osb's shell helpers (for example
+  `ensure_line`), the heredoc defines just those functions at its top.
+- `RUN` uses `SHELL ["/bin/sh", "-eu", "-c"]`; Debian and Ubuntu images set
+  `ARG DEBIAN_FRONTEND=noninteractive`.
+- The file ends with `CMD ["/bin/bash"]` unless `artifacts.dockerfile` sets
+  `cmd` or `entrypoint`.
+- Secrets are never written into the file: steps that use them read the value
+  from a BuildKit secret (`RUN --mount=type=secret,id=password,env=OSB_ARG_PASSWORD`).
+  Build with `OSB_ARG_PASSWORD=... docker build --secret id=password,env=OSB_ARG_PASSWORD .`;
+  the header of the Dockerfile shows the command, and `osb build oci` passes
+  the values automatically.
 
-Native instructions are used where they keep the semantics: `write-file`,
-`template-file`, `copy-files` → `COPY --chmod --chown`; `download-file` →
-`ADD --checksum`; `set-environment` → `ENV` (and `/etc/environment`). Everything
-else becomes a readable `RUN` heredoc per step; package caches are cleaned in the
-same layer. The command to build the context (including `--secret` flags) is
-printed after rendering.
+It needs BuildKit (the default builder since Docker 23) for heredocs and
+secret mounts.
 
 ## oci
 

@@ -13,7 +13,7 @@ This document is the design reference. End-user documentation lives in
   | Target       | Kind   | Output                                                         |
   |--------------|--------|----------------------------------------------------------------|
   | `shell`      | render | Readable, dependency-free POSIX `sh` script                    |
-  | `dockerfile` | render | Directory with `Dockerfile` and build context                  |
+  | `dockerfile` | render | A self-contained `Dockerfile` (no osb library, no extra files) |
   | `cloud-init` | render | `user-data` (`#cloud-config`), `meta-data`, `seed.iso`         |
   | `oci`        | build  | Container image (docker/BuildKit), optionally an OCI archive   |
   | `wsl`        | build  | WSL 2 root filesystem (`.wsl` = `tar.gz`)                      |
@@ -197,8 +197,9 @@ Missing required arguments are prompted for on a TTY (secrets without echo).
 ### 3.3 Secrets
 
 - Values are redacted (`***`) in logs, plans, errors and printed scripts.
-- `dockerfile`/`oci`: a `RUN` step whose script contains a secret is passed as a
-  BuildKit secret mount, never stored in a layer or the build context.
+- `dockerfile`/`oci`: secret values are replaced by references to BuildKit
+  secret mounts (`--mount=type=secret,id=NAME,env=OSB_ARG_NAME`); they are never
+  stored in the Dockerfile, a layer or the build context.
 - `shell`/`cloud-init`: secrets are embedded; `osb` warns and writes files with
   mode `0600`.
 - `set-password` with `random: true` generates the password on the target at

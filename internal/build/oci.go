@@ -34,7 +34,7 @@ func (c *Context) buildImage(dir string, tags []string, extra []*ops.Step) error
 	}
 	args = append(args, dir)
 	c.log("building image %s with %s", strings.Join(tags, ", "), c.builder())
-	return c.runIn("", []string{"DOCKER_BUILDKIT=1"}, c.builder(), args...)
+	return c.runIn("", append([]string{"DOCKER_BUILDKIT=1"}, res.Environ()...), c.builder(), args...)
 }
 
 // OCI builds a container image.

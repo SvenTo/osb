@@ -70,3 +70,13 @@ func (s *Set) Empty() bool {
 	defer s.mu.RUnlock()
 	return len(s.values) == 0
 }
+
+// Values returns the secret values, longest first.
+func (s *Set) Values() []string {
+	if s == nil {
+		return nil
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return append([]string(nil), s.values...)
+}
