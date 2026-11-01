@@ -41,6 +41,9 @@ var Targets = []TargetSettings{
 			{Name: "volumes", Type: "list", Description: "Paths for `VOLUME`, e.g. `[/data]`."},
 			{Name: "entrypoint", Type: "list|string", Description: "`ENTRYPOINT`: a list is written in exec form (`[\"/usr/bin/tini\", \"--\"]`), a string in shell form."},
 			{Name: "cmd", Type: "list|string", Default: "`[\"/bin/bash\"]` when neither `cmd` nor `entrypoint` is set", Description: "`CMD`: a list is written in exec form, a string in shell form."},
+			{Name: "package-cache", Type: "string", Default: "`tmpfs`", Enum: []string{"tmpfs", "cache", "remove"}, Description: "How package downloads and lists stay out of the image. `tmpfs`: `RUN`s that use the package manager mount a temporary file system over the cache directories (`--mount=type=tmpfs`); it lives in memory, so very large installations need enough RAM. `cache`: a BuildKit cache mount that keeps the downloads on the builder between builds, for fast rebuilds. `remove`: delete the caches at the end of each `RUN`."},
+			{Name: "merge-steps", Type: "bool", Default: "`true`", Description: "Merge consecutive steps without secrets into one `RUN`, so that a file changed by several steps is stored once and the image has fewer layers. `false` gives one `RUN` per step, so a changed step rebuilds less."},
+			{Name: "slim", Type: "bool", Default: "`false`", Description: "Leave out documentation: man and info pages (and on Debian and Ubuntu docs and translations, keeping the copyright files) of the packages installed by the steps; each `RUN` also removes `/tmp`, `/var/tmp`, `/root/.cache` and the package manager logs."},
 		},
 	},
 	{
@@ -87,6 +90,7 @@ var Targets = []TargetSettings{
 			{Name: "timeout", Type: "string", Default: "`30m`", Description: "Maximum duration of the build VM run, e.g. `90s`, `45m`, `1h30m`."},
 			{Name: "compress", Type: "bool", Default: "`true`", Description: "Compress the image (`qemu-img convert -c`): a smaller file, slightly slower first reads."},
 		},
+			Note: "At the end of the build, osb removes the package caches, temporary files and logs and discards the free blocks of the disk (`fstrim`), so they do not take space in the image.",
 	},
 	{
 		Target:  "ova",

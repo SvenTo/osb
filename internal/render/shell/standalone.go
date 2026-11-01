@@ -112,20 +112,6 @@ func Helpers(script string, fl *flavor.Flavor) string {
 	return globals.String() + funcs.String()
 }
 
-// PackagesCommand renders a package installation as plain commands for the
-// flavor, followed by removing the package caches (for container images).
-func PackagesCommand(names []string, fl *flavor.Flavor) string {
-	pkgs := strings.Join(quoteAll(names), " ")
-	if fl.IsArch() {
-		return "pacman -Syu --noconfirm --needed " + pkgs + "\nrm -rf /var/cache/pacman/pkg/*\n"
-	}
-	opts := ""
-	if o, ok := fl.Vars["apt-options"].(string); ok && o != "" {
-		opts = o + " "
-	}
-	return "apt-get update -q\napt-get install -y -q " + opts + pkgs + "\nrm -rf /var/lib/apt/lists/*\n"
-}
-
 // Colored replaces the output helpers (log, warn, die, step) in helpers with
 // colored versions and adds the terminal detection they need.
 func Colored(helpers string) string {

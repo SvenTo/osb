@@ -5102,6 +5102,24 @@
               "description": "Additional LABELs. osb always sets org.opencontainers.image.title (the configuration's name) and org.opencontainers.image.description.",
               "type": "object"
             },
+            "merge-steps": {
+              "description": "Merge consecutive steps without secrets into one RUN, so that a file changed by several steps is stored once and the image has fewer layers. false gives one RUN per step, so a changed step rebuilds less. Default: true.",
+              "type": [
+                "boolean",
+                "string"
+              ]
+            },
+            "package-cache": {
+              "description": "How package downloads and lists stay out of the image. tmpfs: RUNs that use the package manager mount a temporary file system over the cache directories (--mount=type=tmpfs); it lives in memory, so very large installations need enough RAM. cache: a BuildKit cache mount that keeps the downloads on the builder between builds, for fast rebuilds. remove: delete the caches at the end of each RUN. One of: tmpfs, cache, remove. Default: tmpfs.",
+              "type": "string"
+            },
+            "slim": {
+              "description": "Leave out documentation: man and info pages (and on Debian and Ubuntu docs and translations, keeping the copyright files) of the packages installed by the steps; each RUN also removes /tmp, /var/tmp, /root/.cache and the package manager logs. Default: false.",
+              "type": [
+                "boolean",
+                "string"
+              ]
+            },
             "user": {
               "description": "USER at the end of the file: the user the container runs as. All steps run as root before it.",
               "type": "string"

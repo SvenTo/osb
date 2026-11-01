@@ -58,6 +58,21 @@ type renderer struct {
 	total   int
 	secrets []Secret
 	used    map[string]bool
+	items   []instr
+	pending string // comment of the current step, until its first instruction
+
+	cache    string // package-cache: tmpfs, cache or remove
+	merge    bool   // merge-steps
+	slim     bool
+	upgraded bool // Arch: the base image is upgraded in the first RUN
+}
+
+// instr is a Dockerfile instruction of a step, before RUNs are merged.
+type instr struct {
+	header string   // step comment for the first instruction of a step
+	text   string   // a non-RUN instruction; "" for RUN
+	script string   // RUN: shell script
+	mounts []string // RUN: secret mounts
 }
 
 // Render writes the Dockerfile into dir.
@@ -103,22 +118,31 @@ func (res *Result) Environ() []string {
 
 // Generate renders the Dockerfile in memory.
 func Generate(plan *engine.Plan, opts Options) (*Result, error) {
-	r := &renderer{plan: plan, used: map[string]bool{}}
-	r.secrets = secretsOf(plan)
 	settings := plan.Artifact("dockerfile")
+	r := &renderer{plan: plan, used: map[string]bool{}, cache: "tmpfs", merge: true}
+	if v := expr.Stringify(settings["package-cache"]); v != "" {
+		r.cache = v
+	}
+	if r.cache != "tmpfs" && r.cache != "cache" && r.cache != "remove" {
+		return nil, fmt.Errorf("artifacts.dockerfile.package-cache: %q is not tmpfs, cache or remove", r.cache)
+	}
+	if v, ok := settings["merge-steps"]; ok {
+		r.merge = isTrue(v)
+	}
+	r.slim = isTrue(settings["slim"])
+	r.secrets = secretsOf(plan)
 	steps := append(append([]*ops.Step{}, plan.Steps...), opts.ExtraSteps...)
 	r.total = len(steps)
 
-	var body strings.Builder
-	saved := r.b
-	r.b = strings.Builder{}
 	for _, s := range steps {
 		if err := r.step(s); err != nil {
 			return nil, err
 		}
 	}
-	body.WriteString(r.b.String())
-	r.b = saved
+	r.items = append(r.setup(), r.items...)
+	r.writeItems()
+	body := r.b.String()
+	r.b.Reset()
 
 	base := expr.Stringify(settings["base-image"])
 	if base == "" {
@@ -177,9 +201,9 @@ func Generate(plan *engine.Plan, opts Options) (*Result, error) {
 	}
 	r.line("SHELL [\"/bin/sh\", \"-eu\", \"-c\"]")
 	if m, ok := settings["env"].(map[string]any); ok && len(m) > 0 {
-		r.env(m)
+		r.line("%s", envInstr(m))
 	}
-	r.b.WriteString(body.String())
+	r.b.WriteString(body)
 
 	r.b.WriteString("\n")
 	if vols := list(settings["volumes"]); len(vols) > 0 {
@@ -245,12 +269,12 @@ func (r *renderer) line(format string, a ...any) {
 	fmt.Fprintf(&r.b, format+"\n", a...)
 }
 
-func (r *renderer) env(m map[string]any) {
+func envInstr(m map[string]any) string {
 	var parts []string
 	for _, k := range sortedKeys(m) {
 		parts = append(parts, k+"="+quote(expr.Stringify(m[k])))
 	}
-	r.line("ENV %s", strings.Join(parts, " \\\n    "))
+	return "ENV " + strings.Join(parts, " \\\n    ")
 }
 
 func (r *renderer) header(s *ops.Step) {
@@ -258,13 +282,23 @@ func (r *renderer) header(s *ops.Step) {
 	if s.Action != "" && !strings.HasSuffix(title, s.Action) {
 		title += " (" + s.Action + ")"
 	}
-	r.line("\n# %d/%d %s", s.Index, r.total, r.plan.Secrets.String(title))
+	r.pending = fmt.Sprintf("# %d/%d %s", s.Index, r.total, r.plan.Secrets.String(title))
+}
+
+// emit adds an instruction to the current step.
+func (r *renderer) emit(in instr) {
+	in.header, r.pending = r.pending, ""
+	r.items = append(r.items, in)
+}
+
+func (r *renderer) text(format string, a ...any) {
+	r.emit(instr{text: fmt.Sprintf(format, a...)})
 }
 
 func (r *renderer) step(s *ops.Step) error {
 	r.header(s)
 	if len(s.Ops) == 0 {
-		r.line("# (nothing to do)")
+		r.text("# (nothing to do)")
 		return nil
 	}
 	fl := r.plan.Flavor
@@ -300,7 +334,7 @@ func (r *renderer) step(s *ops.Step) error {
 			if err := flush(); err != nil {
 				return err
 			}
-			r.add(t)
+			r.addURL(t)
 		case ops.Env:
 			if err := flush(); err != nil {
 				return err
@@ -309,12 +343,12 @@ func (r *renderer) step(s *ops.Step) error {
 			for _, kv := range t.Vars {
 				m[kv.Key] = kv.Value
 			}
-			r.env(m)
+			r.text("%s", envInstr(m))
 		case ops.Note:
 			if err := flush(); err != nil {
 				return err
 			}
-			r.line("# %s", t.Message)
+			r.text("# %s", t.Message)
 		default:
 			pending.WriteString(r.opScript(o))
 		}
@@ -329,7 +363,7 @@ func (r *renderer) opScript(o ops.Op) string {
 		if len(t.Names) == 0 {
 			return ""
 		}
-		return shell.PackagesCommand(t.Names, r.plan.Flavor)
+		return r.packagesCommand(t.Names)
 	case ops.Env:
 		var b strings.Builder
 		for _, kv := range t.Vars {
@@ -342,10 +376,8 @@ func (r *renderer) opScript(o ops.Op) string {
 	return shell.Op(o, r.plan.Flavor)
 }
 
-// run emits a RUN instruction. Short scripts without helpers become a single
-// line; others a heredoc with the helper functions they use.
+// run adds a RUN instruction; secret values are replaced by BuildKit secrets.
 func (r *renderer) run(script string, secret bool) error {
-	helpers := shell.Helpers(script, r.plan.Flavor)
 	var mounts []string
 	if secret {
 		var used []Secret
@@ -354,27 +386,12 @@ func (r *renderer) run(script string, secret bool) error {
 		if err != nil {
 			return err
 		}
-		helpers = shell.Helpers(script, r.plan.Flavor)
 		for _, s := range used {
 			r.used[s.ID] = true
 			mounts = append(mounts, fmt.Sprintf("--mount=type=secret,id=%s,env=%s", s.ID, s.Env))
 		}
 	}
-	prefix := "RUN "
-	if len(mounts) > 0 {
-		prefix += strings.Join(mounts, " ") + " "
-	}
-	lines := strings.Split(strings.TrimRight(script, "\n"), "\n")
-	if helpers == "" && simpleLines(lines) {
-		r.line("%s%s", prefix, strings.Join(lines, " \\\n && "))
-		return nil
-	}
-	full := helpers + script
-	if helpers != "" {
-		full = helpers + "\n" + script
-	}
-	d := shell.Delimiter(full, "EOF")
-	r.line("%s<<'%s'\n%s%s", prefix, d, full, d)
+	r.emit(instr{script: script, mounts: mounts})
 	return nil
 }
 
@@ -412,10 +429,10 @@ func (r *renderer) copy(f ops.File) {
 		return
 	}
 	d := shell.Delimiter(c, "EOF")
-	r.line("COPY %s <<'%s' %s\n%s%s", flags, d, quoteWord(f.Path), c, d)
+	r.text("COPY %s <<'%s' %s\n%s%s", flags, d, quoteWord(f.Path), c, d)
 }
 
-func (r *renderer) add(d ops.Download) {
+func (r *renderer) addURL(d ops.Download) {
 	flags := []string{}
 	if d.SHA256 != "" {
 		flags = append(flags, "--checksum=sha256:"+d.SHA256)
@@ -428,7 +445,7 @@ func (r *renderer) add(d ops.Download) {
 	if own := owner(d.Owner, d.Group); own != "" {
 		flags = append(flags, "--chown="+own)
 	}
-	r.line("ADD %s %s %s", strings.Join(flags, " "), quoteWord(d.URL), quoteWord(d.Path))
+	r.text("ADD %s %s %s", strings.Join(flags, " "), quoteWord(d.URL), quoteWord(d.Path))
 }
 
 func owner(o, g string) string {

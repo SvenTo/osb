@@ -108,14 +108,19 @@ artifacts:
 files. Build it with `docker build -t NAME DIR`, or take it as a template, edit
 it and keep it in your repository without osb.
 
-- Packages are installed with plain `apt-get` / `pacman` commands, and the
-  package caches are removed in the same layer.
+- Packages are installed with plain `apt-get` / `pacman` commands. The
+  package caches never end up in the image: `RUN`s that use the package
+  manager mount a tmpfs over them (see `package-cache` below). On Arch Linux
+  the first `RUN` upgrades the base image once (`pacman -Syu`), later steps
+  install with `pacman -S --needed`.
 - Files (`write-file`, `template-file`, `copy-files`, `authorize-ssh-key`, ...)
   become `COPY --chmod --chown <<EOF` heredocs; downloads become
   `ADD --checksum`; `set-environment` becomes `ENV`.
-- Everything else is a `RUN` per step: a single command line, or a heredoc
-  script. When a step needs one of osb's shell helpers (for example
-  `ensure_line`), the heredoc defines just those functions at its top.
+- Everything else becomes `RUN`. Consecutive steps share one `RUN` (each
+  starts with its `# N/TOTAL title` comment), so the image has few layers and
+  a file changed by several steps is stored once. A single step is a command
+  line or a heredoc script. When a script needs one of osb's shell helpers (for
+  example `ensure_line`), the heredoc defines just those functions at its top.
 - `RUN` uses `SHELL ["/bin/sh", "-eu", "-c"]`; Debian and Ubuntu images set
   `ARG DEBIAN_FRONTEND=noninteractive`.
 - Secrets are never written into the file: steps that use them read the value
@@ -146,6 +151,43 @@ artifacts:
 ```
 
 The steps always run as root; `user` only applies to the running container.
+
+Three settings control the size of the image and the layers:
+
+```yaml
+artifacts:
+  dockerfile:
+    package-cache: tmpfs   # tmpfs (default), cache or remove
+    merge-steps: true      # one RUN for consecutive steps (default: true)
+    slim: true             # leave out documentation (default: false)
+```
+
+- `package-cache: tmpfs` mounts an empty in-memory file system over
+  `/var/cache/apt` and `/var/lib/apt/lists` (Arch: `/var/cache/pacman/pkg`)
+  while a `RUN` uses the package manager:
+
+  ```dockerfile
+  RUN --mount=type=tmpfs,target=/var/cache/apt \
+      --mount=type=tmpfs,target=/var/lib/apt/lists apt-get update -q \
+   && apt-get install -y -q --no-install-recommends curl vim
+  ```
+
+  The downloads stay in memory during the build; for very large installations
+  (a desktop with thousands of packages) the builder needs enough RAM, or use
+  `cache`. `cache` uses BuildKit cache mounts instead: downloads are kept on the
+  builder and reused by the next build, which makes rebuilds much faster.
+  `remove` deletes the caches at the end of each `RUN`, for builders without
+  mount support.
+- `merge-steps: false` gives every step its own `RUN`: more layers, but
+  changing a late step reuses the cached layers before it. Steps that use a
+  secret always get their own `RUN`, so the secret mount covers only them.
+- `slim` keeps documentation out of the packages that the steps install
+  (`path-exclude` in `/etc/dpkg/dpkg.cfg.d/slim`, `NoExtract` in
+  `/etc/pacman.conf`): man and info pages, and on Debian docs and translations
+  (the copyright files stay). The official Ubuntu and Arch images already leave
+  out most documentation, so `slim` matters most for Debian. Each `RUN` also
+  deletes `/tmp/*`, `/var/tmp/*`, `/root/.cache` and the package manager logs,
+  so a step must not leave files in `/tmp` for a later step.
 
 ## oci
 
@@ -243,7 +285,10 @@ Builds a VM image the way a cloud would configure an instance:
    VM powers off (or `timeout` is reached),
 6. writes a standalone `OUT/<name>-<flavor>.qcow2` (compressed by default).
 
-At the end of the build osb resets the machine id and cloud-init's state, and
+At the end of the build osb removes the package caches, temporary files and
+logs, and discards the free disk blocks (`fstrim`; the disk is attached with
+`discard=unmap`), so deleted files take no space in the image. It resets the
+machine id and cloud-init's state, and
 configures cloud-init to run even without a datasource. Every VM started from the
 image is therefore a new cloud-init instance: it gets new SSH host keys and a
 network configuration for its own hardware (DHCP when no datasource provides one).

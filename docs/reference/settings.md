@@ -18,7 +18,7 @@ artifacts:
 | Target | Settings |
 |---|---|
 | [`shell`](#shell) | `colors` |
-| [`dockerfile`](#dockerfile) | `base-image`, `env`, `labels`, `user`, `workdir`, `expose`, `volumes`, `entrypoint`, `cmd` |
+| [`dockerfile`](#dockerfile) | `base-image`, `env`, `labels`, `user`, `workdir`, `expose`, `volumes`, `entrypoint`, `cmd`, `package-cache`, `merge-steps`, `slim` |
 | [`oci`](#oci) | `tags`, `builder`, `platform`, `archive`, `push` |
 | [`wsl`](#wsl) | `name`, `default-user`, `systemd`, `hostname` |
 | [`cloud-init`](#cloud-init) | `hostname`, `extra` |
@@ -48,6 +48,9 @@ The self-contained Dockerfile: `osb render dockerfile`, and the base of `oci` an
 | `volumes` | list | – | Paths for `VOLUME`, e.g. `[/data]`. |
 | `entrypoint` | list or string | – | `ENTRYPOINT`: a list is written in exec form (`["/usr/bin/tini", "--"]`), a string in shell form. |
 | `cmd` | list or string | `["/bin/bash"]` when neither `cmd` nor `entrypoint` is set | `CMD`: a list is written in exec form, a string in shell form. |
+| `package-cache` | string | `tmpfs` | How package downloads and lists stay out of the image. `tmpfs`: `RUN`s that use the package manager mount a temporary file system over the cache directories (`--mount=type=tmpfs`); it lives in memory, so very large installations need enough RAM. `cache`: a BuildKit cache mount that keeps the downloads on the builder between builds, for fast rebuilds. `remove`: delete the caches at the end of each `RUN`. One of: `tmpfs`, `cache`, `remove`. |
+| `merge-steps` | bool | `true` | Merge consecutive steps without secrets into one `RUN`, so that a file changed by several steps is stored once and the image has fewer layers. `false` gives one `RUN` per step, so a changed step rebuilds less. |
+| `slim` | bool | `false` | Leave out documentation: man and info pages (and on Debian and Ubuntu docs and translations, keeping the copyright files) of the packages installed by the steps; each `RUN` also removes `/tmp`, `/var/tmp`, `/root/.cache` and the package manager logs. |
 
 ## oci
 
@@ -98,6 +101,8 @@ The `#cloud-config` user-data: `osb render cloud-init`, and the configuration of
 | `libvirt-uri` | string | `qemu:///session` | libvirt connection for `driver: libvirt`, e.g. `qemu:///system`. |
 | `timeout` | string | `30m` | Maximum duration of the build VM run, e.g. `90s`, `45m`, `1h30m`. |
 | `compress` | bool | `true` | Compress the image (`qemu-img convert -c`): a smaller file, slightly slower first reads. |
+
+At the end of the build, osb removes the package caches, temporary files and logs and discards the free blocks of the disk (`fstrim`), so they do not take space in the image.
 
 ## ova
 

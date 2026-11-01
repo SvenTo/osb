@@ -27,7 +27,7 @@ func TestRenderTargets(t *testing.T) {
 		"shell":      "useradd --create-home alice",
 		"apply":      "useradd --create-home alice",
 		"dockerfile": "FROM archlinux:latest",
-		"oci":        "pacman -Syu --noconfirm --needed git openssh",
+		"oci":        "pacman -S --noconfirm --needed git openssh",
 		"wsl":        "FROM archlinux:latest",
 		"cloud-init": "#cloud-config",
 		"qcow2":      "OSB-BUILD-RESULT",
@@ -109,5 +109,59 @@ func TestUserFiles(t *testing.T) {
 	}
 	if r := Render(Request{Config: cfg, Flavor: "debian"}); !strings.Contains(r.Error, "Files panel") {
 		t.Errorf("missing file: %q", r.Error)
+	}
+}
+
+func renderDockerfile(t *testing.T, flavor, artifacts string) string {
+	t.Helper()
+	c := `
+name: demo
+` + artifacts + `
+steps:
+  - action: install-packages
+    args: { packages: [git] }
+  - action: install-packages
+    args: { packages: [curl] }
+  - action: run-command
+    args: { command: "echo hi > /etc/hi" }
+`
+	resp := Render(Request{Config: c, Flavor: flavor, Target: "dockerfile"})
+	if resp.Error != "" {
+		t.Fatal(resp.Error)
+	}
+	return resp.Files[0].Content
+}
+
+func TestDockerfileLayers(t *testing.T) {
+	df := renderDockerfile(t, "ubuntu", "")
+	if strings.Count(df, "\nRUN ") != 1 {
+		t.Errorf("consecutive steps are not merged into one RUN:\n%s", df)
+	}
+	if !strings.Contains(df, "--mount=type=tmpfs,target=/var/lib/apt/lists") || strings.Contains(df, "rm -rf /var/lib/apt") {
+		t.Errorf("package caches are not on a tmpfs:\n%s", df)
+	}
+	if strings.Count(df, "apt-get update") != 1 {
+		t.Errorf("repeated apt-get update in one RUN:\n%s", df)
+	}
+
+	df = renderDockerfile(t, "ubuntu", "artifacts: { dockerfile: { package-cache: remove, merge-steps: false } }")
+	if strings.Count(df, "\nRUN ") != 3 || strings.Count(df, "rm -rf /var/lib/apt/lists/*") != 2 || strings.Contains(df, "--mount") {
+		t.Errorf("package-cache: remove, merge-steps: false:\n%s", df)
+	}
+
+	df = renderDockerfile(t, "debian", "artifacts: { dockerfile: { package-cache: cache, slim: true } }")
+	for _, want := range []string{"/etc/dpkg/dpkg.cfg.d/slim", "rm -f /etc/apt/apt.conf.d/docker-clean", "--mount=type=cache,target=/var/cache/apt,sharing=locked", "rm -rf /tmp/*"} {
+		if !strings.Contains(df, want) {
+			t.Errorf("cache and slim: missing %q:\n%s", want, df)
+		}
+	}
+
+	df = renderDockerfile(t, "archlinux", "")
+	if strings.Count(df, "pacman -Syu") != 1 || !strings.Contains(df, "pacman -S --noconfirm --needed git") {
+		t.Errorf("Arch Linux is not upgraded exactly once:\n%s", df)
+	}
+
+	if r := Render(Request{Config: "name: demo\nartifacts: { dockerfile: { package-cache: none } }\nsteps: []\n", Flavor: "ubuntu", Target: "dockerfile"}); r.Error == "" {
+		t.Error("invalid package-cache accepted")
 	}
 }

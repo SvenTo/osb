@@ -200,11 +200,14 @@ func Render(plan *engine.Plan, opts Options) (*Result, error) {
 func buildWrapper() string {
 	// After configuring: let cloud-init run again on the first boot of every
 	// instance (also without a datasource, falling back to DHCP networking),
-	// reset the machine id, then report the result on the serial console.
+	// remove package caches, temporary files and logs, reset the machine id,
+	// discard the free blocks (the disk is attached with discard=unmap, so the
+	// image shrinks), then report the result on the serial console.
 	return fmt.Sprintf(`if sh %s; then r=%q; else r=%q; fi; `+
 		`printf 'policy: search,found=all,maybe=all,notfound=enabled\n' > /etc/cloud/ds-identify.cfg; `+
+		`{ apt-get clean; rm -rf /var/lib/apt/lists/* /var/cache/pacman/pkg/* /tmp/* /var/tmp/*; journalctl --rotate; journalctl --vacuum-time=1s; } >/dev/null 2>&1 || true; `+
 		`cloud-init clean --logs --machine-id >/dev/null 2>&1 || truncate -s 0 /etc/machine-id; `+
-		`rm -f /var/lib/dbus/machine-id; sync; `+
+		`rm -f /var/lib/dbus/machine-id; sync; fstrim -a >/dev/null 2>&1 || true; `+
 		`echo "$r"; echo "$r" > /dev/ttyS0 2>/dev/null || true`,
 		ScriptPath, MarkerOK, MarkerFailed)
 }
