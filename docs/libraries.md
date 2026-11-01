@@ -1,5 +1,16 @@
 # Libraries, imports and tests
 
+## Extra actions
+
+osb ships a library of higher-level actions written in this format, compiled
+into the binary: for example `install-aur-package`, `mkdir-home`,
+`letsencrypt-certificate`, `plasma-autologin` or `krdp-server`. They can be used
+without an import; see [Extra actions](reference/actions.md#extra-actions) for
+the list and `osb actions source <action>` for the YAML. Their sources and tests
+are in [`library/`](../library) and are a good starting point for your own
+libraries. A configuration that defines an action with the same name replaces
+the extra action.
+
 ## Custom actions
 
 Custom actions bundle steps behind a name and arguments. They can be defined in

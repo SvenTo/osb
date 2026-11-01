@@ -15,13 +15,13 @@ Global flags:
 
 ## osb actions
 
-List and describe built-in actions
+List and describe built-in and extra actions
 
 Usage: `osb actions`
 
 ## osb actions list
 
-List built-in actions
+List built-in and extra actions
 
 Usage: `osb actions list`
 
@@ -30,6 +30,12 @@ Usage: `osb actions list`
 Show arguments and an example of an action
 
 Usage: `osb actions show <action>`
+
+## osb actions source
+
+Print the YAML source of an extra action's library file
+
+Usage: `osb actions source <action|file>`
 
 ## osb apply
 

@@ -14,6 +14,7 @@ import (
 	"github.com/SvenTo/osb/internal/engine"
 	"github.com/SvenTo/osb/internal/imports"
 	"github.com/SvenTo/osb/internal/schema"
+	"github.com/SvenTo/osb/library"
 )
 
 // Version is set at build time.
@@ -52,7 +53,7 @@ func warnf(format string, a ...any) {
 func loadConfig(file string, updateImports bool) (*config.Config, *imports.Resolver, error) {
 	res := imports.NewResolver(file, updateImports)
 	res.Log = func(s string) { info("%s", s) }
-	cfg, err := config.Load(file, config.LoadOptions{Validate: schema.Validate, ResolveGit: res.Resolve})
+	cfg, err := config.Load(file, config.LoadOptions{Validate: schema.Validate, ResolveGit: res.Resolve, ExtraActions: library.Actions()})
 	if err != nil {
 		return nil, nil, err
 	}

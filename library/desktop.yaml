@@ -1,0 +1,140 @@
+# Actions for desktop machines (KDE Plasma, RDP, VSCode).
+actions:
+  disable-sleep:
+    description: Mask the sleep, suspend and hibernate targets (for VMs that must stay reachable)
+    steps:
+      - action: disable-systemd-unit
+        args:
+          units: [sleep.target, suspend.target, hibernate.target, hybrid-sleep.target]
+          mask: true
+
+  plasma-autologin:
+    description: Log a user in to Plasma automatically (plasma-login-manager) and boot into the graphical target
+    arguments:
+      user: { type: string, required: true }
+      session: { type: string, default: plasma.desktop }
+    steps:
+      - action: write-file
+        args:
+          path: /etc/plasmalogin.conf.d/autologin.conf
+          content: |
+            [Autologin]
+            User=${{ args.user }}
+            Session=${{ args.session }}
+      - action: enable-systemd-unit
+        args: { units: [plasmalogin.service] }
+      - action: run-command
+        args: { command: systemctl set-default graphical.target }
+
+  set-kde-config:
+    description: Set KDE configuration values of a user with kwriteconfig6
+    arguments:
+      user: { type: string, required: true }
+      settings:
+        type: array
+        required: true
+        description: "List of {file, group, key, value}; group may be a list for nested groups"
+    steps:
+      - title: "${{ item.file }} ${{ item.key }}"
+        foreach: "${{ args.settings }}"
+        action: run-command
+        args:
+          command: "${{ ['kwriteconfig6', '--file', item.file]
+                        .concat([].concat(item.group).reduce(function (a, g) { return a.concat(['--group', g]); }, []))
+                        .concat(['--key', item.key, String(item.value)]) }}"
+          user: ${{ args.user }}
+
+  autostart-applications:
+    description: Start applications (desktop file ids from /usr/share/applications) when the user logs in
+    arguments:
+      user: { type: string, required: true }
+      applications: { type: array, required: true, description: "e.g. org.kde.yakuake" }
+    steps:
+      - action: mkdir-home
+        args: { user: "${{ args.user }}", paths: [.config/autostart] }
+      - title: "Autostart ${{ item }}"
+        foreach: "${{ args.applications }}"
+        action: run-command
+        args:
+          command: [cp, "/usr/share/applications/${{ item }}.desktop", "/home/${{ args.user }}/.config/autostart/"]
+          user: ${{ args.user }}
+
+  krdp-server:
+    description: >-
+      Share a user's Plasma session over RDP with KRdp: random password in /root/rdp-password
+      (also in /etc/krdp/password), self-signed certificate in /etc/krdp, and a systemd user service
+    arguments:
+      user: { type: string, required: true }
+      port: { type: int, default: 3389 }
+      cn: { type: string, default: "", description: "Common name of the self-signed certificate (default: the host name)" }
+      name: { type: string, default: krdp-session, description: "Name of the launcher in /usr/local/bin and of the user service (<name>.service)" }
+    output:
+      cert: /etc/krdp/server.crt
+      key: /etc/krdp/server.key
+      service: ${{ args.name }}.service
+    steps:
+      - action: mkdir
+        args: { path: /etc/krdp, mode: "0750", owner: root, group: "${{ args.user }}" }
+      - title: RDP password
+        unless: test -s /root/rdp-password
+        action: run-script
+        args:
+          script: |
+            openssl rand -base64 18 | write_file /root/rdp-password 0600
+      - action: run-command
+        args:
+          command: [install, -m, "0640", -o, root, -g, "${{ args.user }}", /root/rdp-password, /etc/krdp/password]
+      - action: self-signed-certificate
+        args:
+          cert: /etc/krdp/server.crt
+          key: /etc/krdp/server.key
+          cn: ${{ args.cn }}
+          group: ${{ args.user }}
+          key-mode: "0640"
+      # exec keeps /usr/bin/krdpserver as the process image: KWin grants the screencast
+      # and fake-input Wayland protocols based on the executable's desktop file.
+      - action: write-file
+        args:
+          path: /usr/local/bin/${{ args.name }}
+          mode: "0755"
+          content: |
+            #!/bin/sh
+            exec /usr/bin/krdpserver --plasma --port ${{ args.port }} \
+              --username "$USER" --password "$(cat /etc/krdp/password)" \
+              --certificate /etc/krdp/server.crt --certificate-key /etc/krdp/server.key
+      - action: add-user-unit
+        args:
+          name: ${{ args.name }}.service
+          users: ["${{ args.user }}"]
+          target: graphical-session.target
+          content: |
+            [Unit]
+            Description=KRdp server sharing the Plasma session
+            PartOf=graphical-session.target
+            After=graphical-session.target
+
+            [Service]
+            ExecStart=/usr/local/bin/${{ args.name }}
+            Restart=on-failure
+            RestartSec=5
+
+            [Install]
+            WantedBy=graphical-session.target
+
+  install-vscode-extensions:
+    description: Install VSCode extensions for a user; skipped with a warning when VSCode is not installed
+    arguments:
+      user: { type: string, required: true }
+      extensions: { type: array, required: true }
+    steps:
+      - action: log
+        unless: command -v code >/dev/null
+        args: { level: warn, message: "VSCode not installed - skipping the extensions" }
+      - title: "VSCode extension ${{ item }}"
+        foreach: "${{ args.extensions }}"
+        only-if: command -v code >/dev/null
+        on-error: continue
+        action: run-command
+        args:
+          command: [code, --install-extension, "${{ item }}"]
+          user: ${{ args.user }}

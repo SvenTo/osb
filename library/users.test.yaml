@@ -1,0 +1,55 @@
+# Tests for users.yaml. Run: osb test vm/library [--run]
+arguments:
+  user: { type: string, default: alice }
+
+tests:
+  - name: creates home directories, user units and a random password
+    steps:
+      - action: add-user
+        args: { name: "${{ args.user }}" }
+      - action: mkdir-home
+        args: { user: "${{ args.user }}", paths: [.config/environment.d, .local/bin, /Projects/] }
+      - action: add-user-unit
+        args:
+          name: hello.service
+          users: ["${{ args.user }}"]
+          content: |
+            [Service]
+            ExecStart=/bin/echo hello
+      - action: set-login-shell
+        args: { users: ["${{ args.user }}"], shell: /bin/sh }
+      - name: pw
+        action: ensure-password
+        args: { user: "${{ args.user }}" }
+      - action: assert
+        args:
+          message: unexpected state
+          command: >-
+            [ "$(stat -c %U /home/alice/.config /home/alice/.local /home/alice/Projects | sort -u)" = alice ] &&
+            [ -L /home/alice/.config/systemd/user/default.target.wants/hello.service ] &&
+            [ "$(stat -c %U /home/alice/.config/systemd/user)" = alice ] &&
+            [ "$(getent passwd alice | cut -d: -f7)" = /bin/sh ] &&
+            [ -s ${{ steps.pw.output.file }} ] && [ "$(stat -c %a ${{ steps.pw.output.file }})" = 600 ]
+    expect:
+      contains:
+        - ensure_dir /home/alice/.config 0755 alice alice
+        - ensure_dir /home/alice/.config/environment.d 0755 alice alice
+        - ensure_dir /home/alice/Projects 0755 alice alice
+        - /etc/systemd/user/hello.service
+        - stored in /root/alice-password
+    run: true
+
+  - name: uses the hash when given
+    steps:
+      - action: ensure-password
+        args: { user: bob, hash: "$6$salt$hash" }
+    expect:
+      contains: [usermod -p]
+      not-contains: [openssl rand]
+
+  - name: needs a user
+    steps:
+      - action: mkdir-home
+        args: { paths: [x] }
+    expect:
+      error: user

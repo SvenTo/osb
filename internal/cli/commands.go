@@ -26,6 +26,7 @@ import (
 	"github.com/SvenTo/osb/internal/schema"
 	"github.com/SvenTo/osb/internal/target"
 	"github.com/SvenTo/osb/internal/testrunner"
+	"github.com/SvenTo/osb/library"
 )
 
 // Execute runs the CLI.
@@ -315,11 +316,11 @@ func applyCmd(g *globalOpts) *cobra.Command {
 func actionsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "actions",
-		Short: "List and describe built-in actions",
+		Short: "List and describe built-in and extra actions",
 	}
 	cmd.AddCommand(&cobra.Command{
 		Use:   "list",
-		Short: "List built-in actions",
+		Short: "List built-in and extra actions",
 		Args:  cobra.NoArgs,
 		Run: func(*cobra.Command, []string) {
 			w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
@@ -334,6 +335,12 @@ func actionsCmd() *cobra.Command {
 				}
 				fmt.Fprintf(w, "  %s\t%s\n", a.Name, firstSentence(a.Description))
 			}
+			for _, g := range library.Groups() {
+				fmt.Fprintf(w, "\nEXTRA %s:\n", strings.ToUpper(g.Name))
+				for _, a := range g.Actions {
+					fmt.Fprintf(w, "  %s\t%s\n", a.Name, firstSentence(strings.TrimSpace(a.Description)))
+				}
+			}
 			w.Flush()
 		},
 	}, &cobra.Command{
@@ -341,20 +348,43 @@ func actionsCmd() *cobra.Command {
 		Short: "Show arguments and an example of an action",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, a []string) error {
-			act, ok := actions.Get(a[0])
-			if !ok {
-				return fmt.Errorf("unknown action %q", a[0])
+			if act, ok := actions.Get(a[0]); ok {
+				fmt.Print(docs.ActionText(act))
+				return nil
 			}
-			fmt.Print(docs.ActionText(act))
+			if def := library.Get(a[0]); def != nil {
+				fmt.Print(docs.ExtraActionText(def))
+				return nil
+			}
+			return fmt.Errorf("unknown action %q", a[0])
+		},
+	}, &cobra.Command{
+		Use:   "source <action|file>",
+		Short: "Print the YAML source of an extra action's library file",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(_ *cobra.Command, a []string) error {
+			file := strings.TrimSuffix(a[0], ".yaml") + ".yaml"
+			if g := library.GroupOf(a[0]); g != "" {
+				file = g + ".yaml"
+			}
+			data, err := library.File(file)
+			if err != nil {
+				return fmt.Errorf("%q is neither an extra action nor a library file (%s)", a[0], strings.Join(library.FileNames(), ", "))
+			}
+			os.Stdout.Write(data)
 			return nil
 		},
 	})
 	return cmd
 }
 
+// firstSentence returns s up to the first ". " followed by an upper-case letter
+// (so "e.g. foo" does not end the sentence).
 func firstSentence(s string) string {
-	if i := strings.Index(s, ". "); i > 0 {
-		return s[:i+1]
+	for i := 0; i+2 < len(s); i++ {
+		if s[i] == '.' && s[i+1] == ' ' && s[i+2] >= 'A' && s[i+2] <= 'Z' {
+			return s[:i+1]
+		}
 	}
 	return s
 }

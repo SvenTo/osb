@@ -3621,6 +3621,1230 @@
               }
             }
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "set-pacman-mirrors"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "properties": {
+                  "servers": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "array",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "(default: [https://geo.mirror.pkgbuild.com/$repo/os/$arch https://fastly.mirror.pkgbuild.com/$repo/os/$arch])"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "remove-pacman-repositories"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "properties": {
+                  "names": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "array",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": ""
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "update-pacman-keyring"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "properties": {
+                  "reset-if-older-than": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Version prefix (date) of archlinux-keyring (default: 2025)"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "install-packages-as-deps"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "properties": {
+                  "packages": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "array",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": ""
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "install-local-packages"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "properties": {
+                  "dir": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": ""
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "install-aur-package"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "properties": {
+                  "allow-skip-checksums": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "boolean",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Allow sources without checksums (e.g. VCS packages: they are not pinned) (default: false)"
+                  },
+                  "build-user": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Unprivileged user that builds the packages (default: osb-aur)"
+                  },
+                  "commit": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Full commit hash of the AUR repository"
+                  },
+                  "keyserver": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "(default: hkps://keyserver.ubuntu.com)"
+                  },
+                  "name": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Package base (AUR repository name)"
+                  },
+                  "packages": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "array",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Packages of a split package to install (default: all) (default: [])"
+                  },
+                  "pgp-keys": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "array",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Full fingerprints of the keys in the PKGBUILD's validpgpkeys (default: [])"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "install-nvidia-driver"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "properties": {},
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "disable-sleep"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "properties": {},
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "plasma-autologin"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "properties": {
+                  "session": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "(default: plasma.desktop)"
+                  },
+                  "user": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": ""
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "set-kde-config"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "properties": {
+                  "settings": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "array",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "List of {file, group, key, value}; group may be a list for nested groups"
+                  },
+                  "user": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": ""
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "autostart-applications"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "properties": {
+                  "applications": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "array",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "e.g. org.kde.yakuake"
+                  },
+                  "user": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": ""
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "krdp-server"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "properties": {
+                  "cn": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Common name of the self-signed certificate (default: the host name) (default: )"
+                  },
+                  "name": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Name of the launcher in /usr/local/bin and of the user service (\u003cname\u003e.service) (default: krdp-session)"
+                  },
+                  "port": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "integer",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "(default: 3389)"
+                  },
+                  "user": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": ""
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "install-vscode-extensions"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "properties": {
+                  "extensions": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "array",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": ""
+                  },
+                  "user": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": ""
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "self-signed-certificate"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "properties": {
+                  "bits": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "integer",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "(default: 3072)"
+                  },
+                  "cert": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": ""
+                  },
+                  "cn": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Common name (default: the host name) (default: )"
+                  },
+                  "days": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "integer",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "(default: 825)"
+                  },
+                  "group": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "(default: root)"
+                  },
+                  "key": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": ""
+                  },
+                  "key-mode": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "(default: 0600)"
+                  },
+                  "owner": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "(default: root)"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "letsencrypt-certificate"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "properties": {
+                  "delay": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "integer",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Seconds between attempts (default: 30)"
+                  },
+                  "deploy-hook": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Shell script run after every issuance/renewal (default: )"
+                  },
+                  "domain": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": ""
+                  },
+                  "email": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Account e-mail (empty: register without e-mail) (default: )"
+                  },
+                  "hook-name": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "(default: osb)"
+                  },
+                  "renew-timer": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "boolean",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Install certbot-renew.timer (twice a day) (default: true)"
+                  },
+                  "retries": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "integer",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "(default: 5)"
+                  },
+                  "staging": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "boolean",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "(default: false)"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "mkdir-home"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "properties": {
+                  "home": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "(default: /home/${{ args.user }})"
+                  },
+                  "paths": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "array",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Paths relative to the home directory"
+                  },
+                  "user": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": ""
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "set-login-shell"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "properties": {
+                  "shell": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": ""
+                  },
+                  "users": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "array",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": ""
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "ensure-password"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "properties": {
+                  "file": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "File for a generated password (default: /root/${{ args.user }}-password)"
+                  },
+                  "hash": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "crypt hash (openssl passwd -6)"
+                  },
+                  "user": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": ""
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "enable-user-unit"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "properties": {
+                  "target": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Target that wants the unit (default: default.target)"
+                  },
+                  "unit": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Absolute path of the unit file"
+                  },
+                  "user": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": ""
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "add-user-unit"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "properties": {
+                  "content": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": ""
+                  },
+                  "name": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "Unit name including suffix, e.g. app.service"
+                  },
+                  "target": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "(default: default.target)"
+                  },
+                  "users": {
+                    "anyOf": [
+                      {
+                        "type": [
+                          "array",
+                          "string"
+                        ]
+                      },
+                      {
+                        "$ref": "#/$defs/byFlavor"
+                      }
+                    ],
+                    "description": "(default: [])"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
         }
       ],
       "properties": {

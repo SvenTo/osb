@@ -1,0 +1,174 @@
+# Actions for Arch Linux (pacman).
+actions:
+  set-pacman-mirrors:
+    description: Replace /etc/pacman.d/mirrorlist with the given servers
+    flavors: [archlinux]
+    arguments:
+      servers:
+        type: array
+        default:
+          - https://geo.mirror.pkgbuild.com/$repo/os/$arch
+          - https://fastly.mirror.pkgbuild.com/$repo/os/$arch
+    steps:
+      - action: write-file
+        args:
+          path: /etc/pacman.d/mirrorlist
+          content: "${{ args.servers.map(function (s) { return 'Server = ' + s + '\\n'; }).join('') }}"
+
+  remove-pacman-repositories:
+    description: Remove repository sections (e.g. [community]) from /etc/pacman.conf
+    flavors: [archlinux]
+    arguments:
+      names: { type: array, required: true }
+    steps:
+      - action: run-command
+        args:
+          command: "${{ ['sed', '-i'].concat([].concat.apply([], args.names.map(function (n) {
+                        return ['-e', '/^\\\\[' + n + '\\\\]/,/^$/d']; }))).concat(['/etc/pacman.conf']) }}"
+
+  update-pacman-keyring:
+    description: >-
+      Upgrade archlinux-keyring before the rest of the system. A keyring older than
+      reset-if-older-than (a broken keyring of an old image) is rebuilt first.
+    flavors: [archlinux]
+    arguments:
+      reset-if-older-than: { type: string, default: "2025", description: Version prefix (date) of archlinux-keyring }
+    steps:
+      - title: Rebuild the outdated pacman keyring
+        only-if: "pacman -Q archlinux-keyring | awk -v min=${{ shell(args['reset-if-older-than']) }} '{ exit !($2 < min) }'"
+        action: run-script
+        args:
+          script: |
+            rm -rf /etc/pacman.d/gnupg
+            pacman-key --init
+            pacman-key --populate archlinux
+      - action: run-command
+        args: { command: pacman -Sy --needed --noconfirm archlinux-keyring }
+
+  install-packages-as-deps:
+    description: Install packages marked as dependencies (pacman --asdeps), e.g. optional dependencies
+    flavors: [archlinux]
+    arguments:
+      packages: { type: array, required: true }
+    steps:
+      - action: run-command
+        args:
+          command: "${{ ['pacman', '-S', '--needed', '--noconfirm', '--asdeps'].concat(args.packages) }}"
+
+  install-local-packages:
+    description: Install all package files (*.pkg.tar.*) found in a directory on the target; warns when there are none
+    flavors: [archlinux]
+    arguments:
+      dir: { type: string, required: true }
+    steps:
+      - action: run-script
+        args:
+          script: |
+            if ls ${{ shell(args.dir) }}/*.pkg.tar.* >/dev/null 2>&1; then
+              find ${{ shell(args.dir) }} -name '*.pkg.tar.*' ! -name '*.sig' -print0 \
+                | xargs -0 pacman -U --needed --noconfirm
+            else
+              warn "no package files in ${{ args.dir }} - skipping"
+            fi
+
+  install-aur-package:
+    description: >-
+      Build and install a package from the AUR, pinned to a reviewed commit of its AUR git
+      repository. The commit is checked again after the checkout, the package is built
+      as an unprivileged user, and sources without checksums (SKIP) are refused.
+      Repository dependencies are installed with pacman; AUR dependencies must be
+      installed first with this action. Find the commit with
+      `git ls-remote https://aur.archlinux.org/<name>.git HEAD` and review the PKGBUILD
+      at that commit.
+    flavors: [archlinux]
+    arguments:
+      name: { type: string, required: true, pattern: "^[a-z0-9@._+-]+$", description: Package base (AUR repository name) }
+      commit: { type: string, required: true, pattern: "^[0-9a-f]{40}$", description: Full commit hash of the AUR repository }
+      packages: { type: array, default: [], description: "Packages of a split package to install (default: all)" }
+      pgp-keys: { type: array, default: [], description: Full fingerprints of the keys in the PKGBUILD's validpgpkeys }
+      keyserver: { type: string, default: hkps://keyserver.ubuntu.com }
+      allow-skip-checksums: { type: bool, default: false, description: "Allow sources without checksums (e.g. VCS packages: they are not pinned)" }
+      build-user: { type: string, default: osb-aur, description: Unprivileged user that builds the packages }
+    steps:
+      - action: add-user
+        args:
+          name: ${{ args['build-user'] }}
+          system: true
+          home: /var/lib/${{ args['build-user'] }}
+          shell: /usr/bin/nologin
+      - action: mkdir
+        args: { path: /var/cache/osb/aur-build, owner: "${{ args['build-user'] }}", group: "${{ args['build-user'] }}" }
+      - title: "Build ${{ args.name }} at ${{ args.commit.substring(0, 12) }}"
+        requires: { packages: [base-devel, git] }
+        pre-validation: "args['pgp-keys'].every(function (k) { return /^[0-9A-Fa-f]{40}$/.test(k); }) || fail('pgp-keys must be full 40 character fingerprints')"
+        pre-script: |
+          var installed = args.packages.length ? args.packages : [args.name];
+        unless: >-
+          grep -qsx ${{ args.commit }} /var/lib/osb/aur/${{ args.name }}.commit &&
+          pacman -Q ${{ installed.map(shell).join(' ') }} >/dev/null 2>&1
+        action: run-script
+        args:
+          script: |
+            u=${{ shell(args['build-user']) }}
+            name=${{ shell(args.name) }}
+            commit=${{ args.commit }}
+            src=/var/cache/osb/aur-build/$name
+            rm -rf "$src"
+            as_user "$u" git clone --quiet --no-checkout "https://aur.archlinux.org/$name.git" "$src"
+            cd "$src"
+            as_user "$u" git -c advice.detachedHead=false checkout --quiet --detach "$commit" ||
+              die "$name: commit $commit not found in the AUR repository"
+            [ "$(as_user "$u" git rev-parse HEAD)" = "$commit" ] || die "$name: checkout is not at commit $commit"
+
+            srcinfo=$(as_user "$u" makepkg --printsrcinfo)
+            if ${{ args['allow-skip-checksums'] ? 'false' : 'true' }} &&
+              printf '%s\n' "$srcinfo" | grep -Eq '^[[:space:]]*[a-z0-9]+sums(_[a-z0-9_]+)? = SKIP$'; then
+              die "$name: the PKGBUILD has sources without checksums (SKIP); set allow-skip-checksums to build it anyway"
+            fi
+
+            # Dependencies from the official repositories (makepkg runs without sudo)
+            deps=$(printf '%s\n' "$srcinfo" | awk -F ' = ' -v a="$(uname -m)" \
+              '$1 ~ "^[[:space:]]*(make)?depends(_" a ")?$" { print $2 }' | sort -u)
+            # shellcheck disable=SC2086
+            missing=$([ -z "$deps" ] || pacman -T $deps || true)
+            if [ -n "$missing" ]; then
+              # shellcheck disable=SC2046
+              pacman -S --needed --noconfirm --asdeps $(printf '%s\n' "$missing" | sed 's/[<>=].*//') ||
+                die "$name: could not install the dependencies (install AUR dependencies first): $(echo $missing)"
+            fi
+
+            for key in ${{ args['pgp-keys'].map(shell).join(' ') }}; do
+              as_user "$u" gpg --batch --quiet --keyserver ${{ shell(args.keyserver) }} --recv-keys "$key"
+            done
+
+            as_user "$u" makepkg --noconfirm --cleanbuild --nocheck
+            sel=''
+            for f in $(as_user "$u" makepkg --packagelist); do
+              [ -f "$f" ] || continue
+              p=$(pacman -Qqp "$f")
+              ${{ args.packages.length ? 'case " ' + args.packages.join(' ') + ' " in *" $p "*) ;; *) continue ;; esac' : 'case $p in *-debug) continue ;; esac' }}
+              sel="$sel $f"
+            done
+            [ -n "$sel" ] || die "$name: no package to install"
+            # shellcheck disable=SC2086
+            pacman -U --needed --noconfirm $sel
+
+            ensure_dir /var/lib/osb/aur
+            printf '%s\n' "$commit" | write_file "/var/lib/osb/aur/$name.commit" 0644
+            cd /
+            rm -rf "$src"
+
+  install-nvidia-driver:
+    description: Install the open NVIDIA driver when an NVIDIA GPU is present (DKMS for kernels other than linux)
+    flavors: [archlinux]
+    steps:
+      - title: NVIDIA driver
+        only-if: grep -qs 0x10de /sys/bus/pci/devices/*/vendor
+        action: run-script
+        args:
+          script: |
+            if pacman -Q linux >/dev/null 2>&1; then
+              pacman -S --needed --noconfirm nvidia-open nvidia-utils
+            else
+              pacman -S --needed --noconfirm nvidia-open-dkms nvidia-utils linux-headers
+            fi

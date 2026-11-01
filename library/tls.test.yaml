@@ -1,0 +1,50 @@
+# Tests for tls.yaml. Run: osb test vm/library [--run]
+tests:
+  - name: creates a self-signed certificate once
+    steps:
+      - action: add-group
+        args: { name: certs }
+      - action: mkdir
+        args: { path: /etc/test-tls }
+      - action: self-signed-certificate
+        args: { cert: /etc/test-tls/server.crt, key: /etc/test-tls/server.key, cn: test.example.com, group: certs, key-mode: "0640" }
+      - action: run-command
+        args: { command: cp /etc/test-tls/server.crt /tmp/first.crt }
+      - action: self-signed-certificate
+        args: { cert: /etc/test-tls/server.crt, key: /etc/test-tls/server.key, group: certs, key-mode: "0640" }
+      - action: assert
+        args:
+          message: certificate not as expected
+          command: >-
+            [ "$(cat /tmp/first.crt)" = "$(cat /etc/test-tls/server.crt)" ] &&
+            openssl x509 -in /etc/test-tls/server.crt -noout -subject | grep -q test.example.com &&
+            [ "$(stat -c '%a %G' /etc/test-tls/server.key)" = '640 certs' ]
+    run: true
+
+  - name: requests a Let's Encrypt certificate with a deploy hook
+    steps:
+      - name: le
+        action: letsencrypt-certificate
+        args:
+          domain: vm.example.com
+          staging: true
+          hook-name: app
+          deploy-hook: |
+            #!/bin/sh
+            systemctl restart app
+      - action: log
+        args: { message: "cert ${{ steps.le.output.cert }}" }
+    expect:
+      contains:
+        - certbot certonly --standalone --non-interactive --agree-tos --keep-until-expiring --preferred-challenges http -d vm.example.com --register-unsafely-without-email --staging
+        - /etc/letsencrypt/renewal-hooks/deploy/app.sh
+        - certbot-renew.timer
+        - cert /etc/letsencrypt/live/vm.example.com/fullchain.pem
+
+  - name: without a hook or timer
+    steps:
+      - action: letsencrypt-certificate
+        args: { domain: vm.example.com, email: admin@example.com, renew-timer: false }
+    expect:
+      contains: [--email admin@example.com]
+      not-contains: [renewal-hooks, certbot-renew]

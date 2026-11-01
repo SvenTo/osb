@@ -1,0 +1,104 @@
+# Actions for TLS certificates.
+actions:
+  self-signed-certificate:
+    description: Create a self-signed certificate and key unless the certificate exists; always fixes owner and modes
+    arguments:
+      cert: { type: string, required: true }
+      key: { type: string, required: true }
+      cn: { type: string, default: "", description: "Common name (default: the host name)" }
+      days: { type: int, default: 825 }
+      bits: { type: int, default: 3072 }
+      owner: { type: string, default: root }
+      group: { type: string, default: root }
+      key-mode: { type: string, default: "0600" }
+    steps:
+      - title: Self-signed certificate
+        unless: test -s ${{ shell(args.cert) }}
+        requires: { packages: [openssl] }
+        action: run-script
+        args:
+          script: |
+            cn=${{ shell(args.cn) }}
+            [ -n "$cn" ] || cn=$(uname -n)
+            openssl req -x509 -newkey rsa:${{ args.bits }} -nodes -days ${{ args.days }} -subj "/CN=$cn" \
+              -keyout ${{ shell(args.key) }} -out ${{ shell(args.cert) }} 2>/dev/null
+      - action: set-permissions
+        args: { path: ["${{ args.key }}", "${{ args.cert }}"], owner: "${{ args.owner }}", group: "${{ args.group }}" }
+      - action: set-permissions
+        args: { path: "${{ args.key }}", mode: "${{ args['key-mode'] }}" }
+      - action: set-permissions
+        args: { path: "${{ args.cert }}", mode: "0644" }
+
+  letsencrypt-certificate:
+    description: >-
+      Request a Let's Encrypt certificate with certbot (standalone HTTP challenge, retried
+      while DNS propagates), install a deploy hook and a renewal timer
+    arguments:
+      domain: { type: string, required: true }
+      email: { type: string, default: "", description: "Account e-mail (empty: register without e-mail)" }
+      staging: { type: bool, default: false }
+      deploy-hook: { type: string, default: "", description: Shell script run after every issuance/renewal }
+      hook-name: { type: string, default: osb }
+      retries: { type: int, default: 5 }
+      delay: { type: int, default: 30, description: Seconds between attempts }
+      renew-timer: { type: bool, default: true, description: Install certbot-renew.timer (twice a day) }
+    output:
+      cert: /etc/letsencrypt/live/${{ args.domain }}/fullchain.pem
+      key: /etc/letsencrypt/live/${{ args.domain }}/privkey.pem
+    steps:
+      - if: args['deploy-hook']
+        action: write-file
+        args:
+          path: /etc/letsencrypt/renewal-hooks/deploy/${{ args['hook-name'] }}.sh
+          mode: "0755"
+          content: ${{ args['deploy-hook'] }}
+      - title: Request the certificate
+        requires: { packages: [certbot] }
+        pre-script: |
+          var certbot = ['certbot', 'certonly', '--standalone', '--non-interactive', '--agree-tos',
+                         '--keep-until-expiring', '--preferred-challenges', 'http', '-d', args.domain]
+            .concat(args.email ? ['--email', args.email] : ['--register-unsafely-without-email'])
+            .concat(args.staging ? ['--staging'] : []);
+          var hook = args['deploy-hook'] ? '/etc/letsencrypt/renewal-hooks/deploy/' + args['hook-name'] + '.sh' : '';
+        action: run-script
+        args:
+          script: |
+            attempt=1
+            until certbot_out=$(${{ certbot.map(shell).join(' ') }} 2>&1); do
+              printf '%s\n' "$certbot_out" >&2
+              if [ "$attempt" -ge ${{ args.retries }} ]; then
+                warn "Let's Encrypt failed for ${{ args.domain }} after ${{ args.retries }} attempts"
+                exit 0
+              fi
+              attempt=$((attempt + 1))
+              sleep ${{ args.delay }}
+            done
+            ${{ hook ? shell(hook) : ':' }}
+      - title: Renewal timer
+        if: args['renew-timer']
+        steps:
+          - action: add-systemd-unit
+            args:
+              name: certbot-renew.service
+              enable: false
+              content: |
+                [Unit]
+                Description=Renew Let's Encrypt certificates
+
+                [Service]
+                Type=oneshot
+                ExecStart=/usr/bin/certbot renew --quiet
+          - action: add-systemd-unit
+            args:
+              name: certbot-renew.timer
+              content: |
+                [Unit]
+                Description=Renew Let's Encrypt certificates twice a day
+
+                [Timer]
+                OnCalendar=*-*-* 00,12:00:00
+                RandomizedDelaySec=1h
+                Persistent=true
+
+                [Install]
+                WantedBy=timers.target

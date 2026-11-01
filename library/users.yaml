@@ -1,0 +1,98 @@
+# Actions for user accounts and per-user configuration.
+actions:
+  mkdir-home:
+    description: Create directories below a user's home directory, owned by the user (including the intermediate directories)
+    arguments:
+      user: { type: string, required: true }
+      paths: { type: array, required: true, description: Paths relative to the home directory }
+      home: { type: string, default: "/home/${{ args.user }}" }
+    steps:
+      - pre-script: |
+          var dirs = [];
+          args.paths.forEach(function (p) {
+            var parts = String(p).replace(/^\/+|\/+$/g, '').split('/');
+            for (var i = 1; i <= parts.length; i++) {
+              var d = args.home + '/' + parts.slice(0, i).join('/');
+              if (dirs.indexOf(d) < 0) dirs.push(d);
+            }
+          });
+        action: mkdir
+        args:
+          path: "${{ dirs }}"
+          owner: ${{ args.user }}
+          group: ${{ args.user }}
+
+  set-login-shell:
+    description: Set the login shell of existing users
+    arguments:
+      users: { type: array, required: true }
+      shell: { type: string, required: true }
+    steps:
+      - action: run-script
+        args:
+          script: |
+            for u in ${{ args.users.map(shell).join(' ') }}; do
+              chsh -s ${{ shell(args.shell) }} "$u" >/dev/null
+            done
+
+  ensure-password:
+    description: >-
+      Set a user's password from a crypt hash, or, when no hash is given and the
+      user has no password yet, generate a random one and store it in a root-only file
+    arguments:
+      user: { type: string, required: true }
+      hash: { type: secret, description: "crypt hash (openssl passwd -6)" }
+      file: { type: string, default: "/root/${{ args.user }}-password", description: File for a generated password }
+    output:
+      file: ${{ args.file }}
+    steps:
+      - if: args.hash
+        action: set-password
+        args: { user: "${{ args.user }}", hash: "${{ args.hash }}" }
+      - title: Generate a random password
+        if: "!args.hash"
+        only-if: "passwd -S ${{ shell(args.user) }} | awk '{print $2}' | grep -qE '^(L|NP)$'"
+        action: run-script
+        args:
+          script: |
+            pw=$(openssl rand -base64 18)
+            printf '%s:%s\n' ${{ shell(args.user) }} "$pw" | chpasswd
+            printf '%s\n' "$pw" | write_file ${{ shell(args.file) }} 0600
+            warn "generated a random password for ${{ args.user }}, stored in ${{ args.file }}"
+
+  enable-user-unit:
+    description: Enable a systemd user unit for a user without a running user session
+    arguments:
+      user: { type: string, required: true }
+      unit: { type: string, required: true, description: Absolute path of the unit file }
+      target: { type: string, default: default.target, description: Target that wants the unit }
+    steps:
+      - action: mkdir-home
+        args:
+          user: ${{ args.user }}
+          paths: [".config/systemd/user/${{ args.target }}.wants"]
+      - action: run-command
+        args:
+          command: [ln, -sf, "${{ args.unit }}", "/home/${{ args.user }}/.config/systemd/user/${{ args.target }}.wants/"]
+          user: ${{ args.user }}
+
+  add-user-unit:
+    description: Install a systemd user unit in /etc/systemd/user and enable it for the given users
+    arguments:
+      name: { type: string, required: true, description: "Unit name including suffix, e.g. app.service" }
+      content: { type: string, required: true }
+      users: { type: array, default: [] }
+      target: { type: string, default: default.target }
+    output:
+      path: /etc/systemd/user/${{ args.name }}
+    steps:
+      - action: write-file
+        args:
+          path: /etc/systemd/user/${{ args.name }}
+          content: ${{ args.content }}
+      - foreach: "${{ args.users }}"
+        action: enable-user-unit
+        args:
+          user: ${{ item }}
+          unit: /etc/systemd/user/${{ args.name }}
+          target: ${{ args.target }}

@@ -17,7 +17,9 @@ import (
 	"golang.org/x/text/message"
 
 	"github.com/SvenTo/osb/internal/actions"
+	"github.com/SvenTo/osb/internal/config"
 	"github.com/SvenTo/osb/internal/target"
+	"github.com/SvenTo/osb/library"
 )
 
 // ID is the schema identifier.
@@ -155,7 +157,45 @@ func stepSchema() obj {
 			"then": obj{"properties": obj{"args": args}},
 		})
 	}
+	// Extra actions: argument completion only. A configuration may replace an
+	// extra action with its own definition, so the arguments are not closed.
+	for _, a := range library.Actions() {
+		argProps := obj{}
+		for _, d := range a.Arguments {
+			argProps[d.Name] = extraArgSchema(d)
+		}
+		allOf = append(allOf, obj{
+			"if":   obj{"properties": obj{"action": obj{"const": a.Name}}, "required": []string{"action"}},
+			"then": obj{"properties": obj{"args": obj{"type": "object", "properties": argProps}}},
+		})
+	}
 	return obj{"type": "object", "additionalProperties": false, "properties": props, "allOf": allOf}
+}
+
+func extraArgSchema(d *config.ArgDef) obj {
+	var o obj
+	switch d.Type {
+	case "bool":
+		o = templatable("boolean")
+	case "int":
+		o = templatable("integer")
+	case "array":
+		o = obj{"type": []string{"array", "string"}}
+	case "option":
+		o = obj{"type": []string{"string", "number", "boolean"}}
+	default:
+		o = obj{"type": []string{"string", "number", "boolean"}}
+	}
+	o = obj{"anyOf": []any{o, obj{"$ref": "#/$defs/byFlavor"}}}
+	desc := d.Description
+	if d.HasDefault() && d.Default.V != nil {
+		desc += fmt.Sprintf(" (default: %v)", d.Default.V)
+	}
+	if len(d.Options) > 0 {
+		desc += fmt.Sprintf(" One of: %v.", d.Options)
+	}
+	o["description"] = strings.TrimSpace(desc)
+	return o
 }
 
 // Generate returns the JSON schema as a Go value.

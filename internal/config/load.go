@@ -20,6 +20,9 @@ type LoadOptions struct {
 	ResolveGit func(imp Import, from string) (string, error)
 	// ExtraImports are prepended to the imports of the root file.
 	ExtraImports []Import
+	// ExtraActions are available to every configuration (the action library
+	// compiled into the binary). Actions defined by the configuration win.
+	ExtraActions ActionDefs
 }
 
 // Load reads a configuration file and all of its imports.
@@ -38,6 +41,11 @@ func Load(path string, opts LoadOptions) (*Config, error) {
 	cfg.Imports = append(append([]Import{}, opts.ExtraImports...), cfg.Imports...)
 	if err := l.processImports(cfg, cfg, cfg.Dir); err != nil {
 		return nil, err
+	}
+	for _, a := range opts.ExtraActions {
+		if cfg.Actions.Get(a.Name) == nil {
+			cfg.Actions = append(cfg.Actions, a)
+		}
 	}
 	cfg.Sources = l.order
 	return cfg, nil

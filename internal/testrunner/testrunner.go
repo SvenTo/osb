@@ -17,6 +17,7 @@ import (
 	"github.com/SvenTo/osb/internal/render/shell"
 	"github.com/SvenTo/osb/internal/schema"
 	"github.com/SvenTo/osb/internal/target"
+	"github.com/SvenTo/osb/library"
 )
 
 // Options configures Run.
@@ -92,7 +93,7 @@ func runFile(file string, opts Options, res *Result) error {
 		}
 	}
 	resolver := imports.NewResolver(file, false)
-	cfg, err := config.Load(file, config.LoadOptions{Validate: schema.Validate, ResolveGit: resolver.Resolve, ExtraImports: extra})
+	cfg, err := config.Load(file, config.LoadOptions{Validate: schema.Validate, ResolveGit: resolver.Resolve, ExtraImports: extra, ExtraActions: library.Actions()})
 	if err != nil {
 		return err
 	}

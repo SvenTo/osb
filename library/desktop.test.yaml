@@ -1,0 +1,49 @@
+# Tests for desktop.yaml. Run: osb test vm/library
+# Not run in containers: the actions need KDE Plasma.
+arguments:
+  user: { type: string, default: alice }
+
+tests:
+  - name: configures Plasma
+    flavor: archlinux
+    steps:
+      - action: plasma-autologin
+        args: { user: "${{ args.user }}" }
+      - action: set-kde-config
+        args:
+          user: ${{ args.user }}
+          settings:
+            - { file: kscreenlockerrc, group: Daemon, key: Autolock, value: false }
+            - { file: kdeglobals, group: [KDE, Nested], key: SingleClick, value: true }
+      - action: autostart-applications
+        args: { user: "${{ args.user }}", applications: [org.kde.yakuake] }
+      - action: disable-sleep
+    expect:
+      contains:
+        - User=alice
+        - systemctl set-default graphical.target
+        - as_user alice kwriteconfig6 --file kscreenlockerrc --group Daemon --key Autolock false
+        - as_user alice kwriteconfig6 --file kdeglobals --group KDE --group Nested --key SingleClick true
+        - as_user alice cp /usr/share/applications/org.kde.yakuake.desktop /home/alice/.config/autostart/
+        - hybrid-sleep.target
+
+  - name: sets up KRdp
+    flavor: archlinux
+    steps:
+      - action: krdp-server
+        args: { user: "${{ args.user }}", port: 3390 }
+    expect:
+      contains:
+        - --port 3390
+        - openssl rand -base64 18 | write_file /root/rdp-password 0600
+        - /home/alice/.config/systemd/user/graphical-session.target.wants/
+        - -subj "/CN=$cn"
+
+  - name: VSCode extensions are optional
+    steps:
+      - action: install-vscode-extensions
+        args: { user: "${{ args.user }}", extensions: [redhat.vscode-yaml] }
+    expect:
+      contains:
+        - VSCode not installed
+        - as_user alice code --install-extension redhat.vscode-yaml
