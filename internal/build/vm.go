@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -18,26 +19,28 @@ import (
 )
 
 type vmSettings struct {
-	baseImage string
-	sha256    string
-	diskSize  string
-	memory    int
-	cpus      int
-	driver    string
-	timeout   time.Duration
-	compress  bool
-	uri       string
+	baseImage   string
+	sha256      string
+	diskSize    string
+	memory      int
+	cpus        int
+	driver      string
+	timeout     time.Duration
+	compress    bool
+	compression string // zstd or zlib
+	uri         string
 }
 
 func (c *Context) vmSettings() (*vmSettings, error) {
 	m := c.Plan.Artifact("qcow2")
 	s := &vmSettings{
-		baseImage: setting(m, "base-image", c.Plan.Flavor.CloudImage),
-		sha256:    setting(m, "sha256", ""),
-		diskSize:  setting(m, "disk-size", "10G"),
-		driver:    setting(m, "driver", "qemu"),
-		compress:  boolSetting(m, "compress", true),
-		uri:       setting(m, "libvirt-uri", "qemu:///session"),
+		baseImage:   setting(m, "base-image", c.Plan.Flavor.CloudImage),
+		sha256:      setting(m, "sha256", ""),
+		diskSize:    setting(m, "disk-size", "10G"),
+		driver:      setting(m, "driver", "qemu"),
+		compress:    boolSetting(m, "compress", true),
+		compression: setting(m, "compression", "zstd"),
+		uri:         setting(m, "libvirt-uri", "qemu:///session"),
 	}
 	var err error
 	if s.memory, err = intSetting(m, "memory", 2048); err != nil {
@@ -48,6 +51,9 @@ func (c *Context) vmSettings() (*vmSettings, error) {
 	}
 	if s.timeout, err = time.ParseDuration(setting(m, "timeout", "30m")); err != nil {
 		return nil, fmt.Errorf("qcow2.timeout: %w", err)
+	}
+	if s.compression != "zstd" && s.compression != "zlib" {
+		return nil, fmt.Errorf("qcow2.compression must be zstd or zlib, got %q", s.compression)
 	}
 	if s.driver != "qemu" && s.driver != "libvirt" {
 		return nil, fmt.Errorf("qcow2.driver must be qemu or libvirt, got %q", s.driver)
@@ -121,14 +127,16 @@ func imageFormat(p string) (string, int64, error) {
 // QCOW2 builds a VM disk image: the flavor's cloud image is booted with the
 // rendered cloud-init configuration, which runs the steps and powers off.
 func QCOW2(c *Context) (*Output, error) {
-	p, err := c.buildQCOW2(filepath.Join(c.OutDir, c.baseName()+".qcow2"))
+	p, err := c.buildQCOW2(filepath.Join(c.OutDir, c.baseName()+".qcow2"), true)
 	if err != nil {
 		return nil, err
 	}
 	return &Output{Files: []string{p}}, nil
 }
 
-func (c *Context) buildQCOW2(dest string) (string, error) {
+// buildQCOW2 builds the image into dest; compress=false skips the
+// compression for intermediate images.
+func (c *Context) buildQCOW2(dest string, compress bool) (string, error) {
 	s, err := c.vmSettings()
 	if err != nil {
 		return "", err
@@ -203,9 +211,10 @@ func (c *Context) buildQCOW2(dest string) (string, error) {
 	}
 
 	c.log("writing %s", dest)
-	args := []string{"convert", "-O", "qcow2"}
-	if s.compress {
-		args = append(args, "-c")
+	// -m and -W compress and write with one coroutine per CPU, in any order.
+	args := []string{"convert", "-O", "qcow2", "-m", strconv.Itoa(min(max(runtime.NumCPU(), 1), 16)), "-W"}
+	if compress && s.compress {
+		args = append(args, "-c", "-o", "compression_type="+s.compression)
 	}
 	args = append(args, disk, dest+".part")
 	if err := c.run("qemu-img", args...); err != nil {

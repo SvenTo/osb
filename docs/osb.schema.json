@@ -5216,6 +5216,10 @@
                 "string"
               ]
             },
+            "compression": {
+              "description": "Compression of the image. zstd is several times faster and a little smaller, but needs QEMU 5.1 (2020) or newer to read the image; choose zlib for older tools. One of: zstd, zlib. Default: zstd.",
+              "type": "string"
+            },
             "cpus": {
               "description": "Number of CPUs of the build VM. Default: 2.",
               "type": [

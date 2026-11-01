@@ -283,7 +283,8 @@ Builds a VM image the way a cloud would configure an instance:
 4. boots the VM with QEMU (KVM if `/dev/kvm` is usable) or libvirt,
 5. waits until the configuration reports success on the serial console and the
    VM powers off (or `timeout` is reached),
-6. writes a standalone `OUT/<name>-<flavor>.qcow2` (compressed by default).
+6. writes a standalone `OUT/<name>-<flavor>.qcow2`, compressed with zstd by
+   default, using all CPUs (`qemu-img convert -c -m N -W`).
 
 At the end of the build osb removes the package caches, temporary files and
 logs, and discards the free disk blocks (`fstrim`; the disk is attached with
@@ -309,6 +310,7 @@ artifacts:
     driver: libvirt              # qemu (default) or libvirt
     libvirt-uri: qemu:///system  # default: qemu:///session
     timeout: 1h                  # maximum build time (default: 30m)
+    compression: zlib            # zstd (default) or zlib for tools older than QEMU 5.1
     compress: false              # faster first reads, larger file (default: true)
 ```
 

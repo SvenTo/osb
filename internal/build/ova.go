@@ -100,7 +100,7 @@ func OVA(c *Context) (*Output, error) {
 	if !c.KeepWorkDir {
 		defer os.RemoveAll(work)
 	}
-	qcow, err := c.buildQCOW2(filepath.Join(work, c.baseName()+".qcow2"))
+	qcow, err := c.buildQCOW2(filepath.Join(work, c.baseName()+".qcow2"), false)
 	if err != nil {
 		return nil, err
 	}

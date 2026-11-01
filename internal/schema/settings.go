@@ -89,6 +89,7 @@ var Targets = []TargetSettings{
 			{Name: "libvirt-uri", Type: "string", Default: "`qemu:///session`", Description: "libvirt connection for `driver: libvirt`, e.g. `qemu:///system`."},
 			{Name: "timeout", Type: "string", Default: "`30m`", Description: "Maximum duration of the build VM run, e.g. `90s`, `45m`, `1h30m`."},
 			{Name: "compress", Type: "bool", Default: "`true`", Description: "Compress the image (`qemu-img convert -c`): a smaller file, slightly slower first reads."},
+			{Name: "compression", Type: "string", Default: "`zstd`", Enum: []string{"zstd", "zlib"}, Description: "Compression of the image. `zstd` is several times faster and a little smaller, but needs QEMU 5.1 (2020) or newer to read the image; choose `zlib` for older tools."},
 		},
 		Note: "At the end of the build, osb removes the package caches, temporary files and logs and discards the free blocks of the disk (`fstrim`), so they do not take space in the image.",
 	},

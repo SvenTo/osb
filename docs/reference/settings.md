@@ -22,7 +22,7 @@ artifacts:
 | [`oci`](#oci) | `tags`, `builder`, `platform`, `archive`, `push` |
 | [`wsl`](#wsl) | `name`, `default-user`, `systemd`, `hostname` |
 | [`cloud-init`](#cloud-init) | `hostname`, `extra` |
-| [`qcow2`](#qcow2) | `base-image`, `sha256`, `disk-size`, `memory`, `cpus`, `driver`, `libvirt-uri`, `timeout`, `compress` |
+| [`qcow2`](#qcow2) | `base-image`, `sha256`, `disk-size`, `memory`, `cpus`, `driver`, `libvirt-uri`, `timeout`, `compress`, `compression` |
 | [`ova`](#ova) | `name`, `memory`, `cpus`, `os-type` |
 
 ## shell
@@ -101,6 +101,7 @@ The `#cloud-config` user-data: `osb render cloud-init`, and the configuration of
 | `libvirt-uri` | string | `qemu:///session` | libvirt connection for `driver: libvirt`, e.g. `qemu:///system`. |
 | `timeout` | string | `30m` | Maximum duration of the build VM run, e.g. `90s`, `45m`, `1h30m`. |
 | `compress` | bool | `true` | Compress the image (`qemu-img convert -c`): a smaller file, slightly slower first reads. |
+| `compression` | string | `zstd` | Compression of the image. `zstd` is several times faster and a little smaller, but needs QEMU 5.1 (2020) or newer to read the image; choose `zlib` for older tools. One of: `zstd`, `zlib`. |
 
 At the end of the build, osb removes the package caches, temporary files and logs and discards the free blocks of the disk (`fstrim`), so they do not take space in the image.
 
