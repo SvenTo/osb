@@ -16,8 +16,8 @@ test: build
 # Tests of the website's language support and the VS Code extension (needs node)
 test-js: build vscode-files
 	./osb actions list -o json > site/test/catalog.json
-	node --test site/test/
-	cd editors/vscode && node --test test/
+	node --test site/test/*.test.js
+	cd editors/vscode && node --test test/*.test.js
 
 # Runs the generated scripts in containers of every flavor (needs docker).
 integration: build

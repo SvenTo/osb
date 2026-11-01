@@ -1,4 +1,4 @@
-// Tests for site/static/js/osb-lang.js. Run: node --test site/test/
+// Tests for site/static/js/osb-lang.js. Run: make test-js
 // Needs the catalog: osb actions list -o json > site/test/catalog.json (make site-test does it).
 const test = require('node:test');
 const assert = require('node:assert');
