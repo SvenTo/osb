@@ -64,11 +64,12 @@ dist:
 vscode-files: build
 	mkdir -p editors/vscode/lib editors/vscode/data
 	cp site/static/js/osb-lang.js editors/vscode/lib/
+	cp LICENSE editors/vscode/LICENSE
 	./osb actions list -o json > editors/vscode/data/catalog.json
 
 vscode: vscode-files
 	mkdir -p dist
-	cd editors/vscode && npx --yes @vscode/vsce@3 package --skip-license -o ../../dist/osb.vsix
+	cd editors/vscode && npx --yes @vscode/vsce@3 package -o ../../dist/osb.vsix
 
 # Runs the extension in a real VS Code with a throw-away profile (needs code and
 # xvfb-run). The fixture is restored afterwards.
@@ -82,4 +83,4 @@ vscode-test: vscode-files
 	cp $$tmp/osb.yaml.orig editors/vscode/test/integration/fixture/osb.yaml; rm -rf $$tmp; exit $$rc
 
 clean:
-	rm -rf osb out dist editors/vscode/lib editors/vscode/data
+	rm -rf osb out dist editors/vscode/lib editors/vscode/data editors/vscode/LICENSE

@@ -4,12 +4,27 @@
   "description": "Completion, documentation and validation for osb configurations (osb.yaml), and commands to render them as shell scripts, Dockerfiles and cloud-init.",
   "version": "0.1.0",
   "publisher": "svento",
-  "license": "SEE LICENSE IN README.md",
-  "repository": { "type": "git", "url": "https://github.com/SvenTo/osb" },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SvenTo/osb"
+  },
   "homepage": "https://svento.github.io/osb/",
-  "engines": { "vscode": "^1.90.0" },
-  "categories": ["Programming Languages", "Linters", "Snippets"],
-  "keywords": ["osb", "yaml", "dockerfile", "cloud-init", "provisioning"],
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters",
+    "Snippets"
+  ],
+  "keywords": [
+    "osb",
+    "yaml",
+    "dockerfile",
+    "cloud-init",
+    "provisioning"
+  ],
   "main": "./extension.js",
   "activationEvents": [
     "onLanguage:yaml",
@@ -17,35 +32,99 @@
   ],
   "contributes": {
     "commands": [
-      { "command": "osb.validate", "title": "Validate", "category": "osb" },
-      { "command": "osb.renderShell", "title": "Render shell script", "category": "osb" },
-      { "command": "osb.renderDockerfile", "title": "Render Dockerfile", "category": "osb" },
-      { "command": "osb.renderCloudInit", "title": "Render cloud-init user-data", "category": "osb" },
-      { "command": "osb.showAction", "title": "Show action documentation", "category": "osb" }
+      {
+        "command": "osb.validate",
+        "title": "Validate",
+        "category": "osb"
+      },
+      {
+        "command": "osb.renderShell",
+        "title": "Render shell script",
+        "category": "osb"
+      },
+      {
+        "command": "osb.renderDockerfile",
+        "title": "Render Dockerfile",
+        "category": "osb"
+      },
+      {
+        "command": "osb.renderCloudInit",
+        "title": "Render cloud-init user-data",
+        "category": "osb"
+      },
+      {
+        "command": "osb.showAction",
+        "title": "Show action documentation",
+        "category": "osb"
+      }
     ],
     "menus": {
       "editor/title": [
-        { "command": "osb.renderShell", "when": "osb.isConfig", "group": "navigation@90" }
+        {
+          "command": "osb.renderShell",
+          "when": "osb.isConfig",
+          "group": "navigation@90"
+        }
       ],
       "commandPalette": [
-        { "command": "osb.validate", "when": "osb.isConfig" },
-        { "command": "osb.renderShell", "when": "osb.isConfig" },
-        { "command": "osb.renderDockerfile", "when": "osb.isConfig" },
-        { "command": "osb.renderCloudInit", "when": "osb.isConfig" }
+        {
+          "command": "osb.validate",
+          "when": "osb.isConfig"
+        },
+        {
+          "command": "osb.renderShell",
+          "when": "osb.isConfig"
+        },
+        {
+          "command": "osb.renderDockerfile",
+          "when": "osb.isConfig"
+        },
+        {
+          "command": "osb.renderCloudInit",
+          "when": "osb.isConfig"
+        }
       ]
     },
     "configuration": {
       "title": "osb",
       "properties": {
-        "osb.path": { "type": "string", "default": "osb", "description": "Path of the osb binary (used for validation, rendering and the action catalog)." },
-        "osb.validate": { "type": "string", "enum": ["onSave", "onType", "off"], "default": "onSave", "description": "When to run `osb validate` and show its errors." },
-        "osb.flavor": { "type": "string", "default": "", "description": "Flavor for the render commands (empty: ask)." },
-        "osb.files": { "type": "array", "items": { "type": "string" }, "default": ["**/osb.yaml", "**/*.osb.yaml", "**/osb.*.yaml"], "description": "Glob patterns of osb configurations. YAML files with top-level steps:, actions: or tests: are recognized as well." }
+        "osb.path": {
+          "type": "string",
+          "default": "osb",
+          "description": "Path of the osb binary (used for validation, rendering and the action catalog)."
+        },
+        "osb.validate": {
+          "type": "string",
+          "enum": [
+            "onSave",
+            "onType",
+            "off"
+          ],
+          "default": "onSave",
+          "description": "When to run `osb validate` and show its errors."
+        },
+        "osb.flavor": {
+          "type": "string",
+          "default": "",
+          "description": "Flavor for the render commands (empty: ask)."
+        },
+        "osb.files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "**/osb.yaml",
+            "**/*.osb.yaml",
+            "**/osb.*.yaml"
+          ],
+          "description": "Glob patterns of osb configurations. YAML files with top-level steps:, actions: or tests: are recognized as well."
+        }
       }
     }
   },
   "scripts": {
     "test": "node --test test/*.test.js",
-    "package": "npx --yes @vscode/vsce@3 package --skip-license"
+    "package": "npx --yes @vscode/vsce@3 package"
   }
 }

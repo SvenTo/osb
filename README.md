@@ -111,3 +111,9 @@ the reference and the schema.
 (needs node); `make vscode-test` runs the extension in a real VS Code (needs
 `xvfb-run`). `make site` builds the website into `out/site` and `make vscode`
 packages the extension.
+
+## License
+
+Apache License 2.0, see [LICENSE](LICENSE) and [NOTICE](NOTICE). Files that osb
+generates (scripts, Dockerfiles, cloud-init, images) are yours: they are not
+covered by the license and can be used without restriction.
