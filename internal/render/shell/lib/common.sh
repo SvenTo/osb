@@ -49,11 +49,12 @@ as_user() {
   osb_user=$1; shift
   if [ "$(id -un)" = "$osb_user" ]; then "$@"; return; fi
   osb_home=$(getent passwd "$osb_user" | cut -d: -f6)
-  if has_cmd runuser; then
-    runuser -u "$osb_user" -- env HOME="$osb_home" USER="$osb_user" LOGNAME="$osb_user" "$@"
-  elif has_cmd setpriv; then
+  # setpriv opens no PAM session: pam_limits can fail in containers (e.g. realtime limits)
+  if has_cmd setpriv; then
     setpriv --reuid="$osb_user" --regid="$(id -g "$osb_user")" --init-groups \
       env HOME="$osb_home" USER="$osb_user" LOGNAME="$osb_user" "$@"
+  elif has_cmd runuser; then
+    runuser -u "$osb_user" -- env HOME="$osb_home" USER="$osb_user" LOGNAME="$osb_user" "$@"
   else
     # shellcheck disable=SC2016
     su -s /bin/sh "$osb_user" -c '"$0" "$@"' -- "$@"
