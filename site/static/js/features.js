@@ -3,6 +3,7 @@
 //
 //   id, title, phrase (used in the summary sentence), desc, group
 //   flavors: supported flavors (default: all)
+//   targets: supported outputs (default: all)
 //   requires: other feature ids that are switched on with it
 //   params: [{id, label, value, type: 'text'|'textarea'|'check', options}]
 //   steps(p, ctx): YAML text of the steps, indented by 2 spaces
@@ -20,6 +21,8 @@ export function q(s) {
 const list = (s) => String(s).split(/[\s,]+/).map((x) => x.trim()).filter(Boolean);
 const flow = (items) => '[' + items.map(q).join(', ') + ']';
 const U = '"${{ args.user }}"';
+const NOT_CONTAINERS = ['shell', 'apply', 'cloud-init', 'qcow2', 'ova'];
+const NOT_IMAGES_OF_CONTAINERS = ['shell', 'apply', 'cloud-init', 'qcow2', 'ova', 'wsl'];
 
 export const FEATURES = [
   {
@@ -48,6 +51,7 @@ export const FEATURES = [
   {
     id: 'docker', group: 'Development', title: 'Docker', phrase: 'Docker',
     desc: 'Docker engine, enabled; the user is in the docker group.',
+    targets: NOT_IMAGES_OF_CONTAINERS,
     steps: () => `
   - title: Docker
     action: install-packages
@@ -88,6 +92,7 @@ export const FEATURES = [
   {
     id: 'kde', group: 'Desktop', title: 'KDE Plasma desktop', phrase: 'a KDE Plasma desktop',
     desc: 'Plasma with a login manager; boots into the graphical target.',
+    targets: NOT_CONTAINERS,
     params: [{ id: 'autologin', label: 'Log the user in automatically', type: 'check', value: true }],
     steps: (p) => `
   - title: KDE Plasma
@@ -118,6 +123,7 @@ export const FEATURES = [
   {
     id: 'rdp', group: 'Desktop', title: 'Remote desktop (RDP)', phrase: 'remote desktop over RDP',
     desc: 'Shares the Plasma session with KRdp (password in /root/rdp-password).', flavors: ['archlinux'], requires: ['kde'],
+    targets: NOT_CONTAINERS,
     params: [{ id: 'port', label: 'Port', value: '3389' }],
     steps: (p) => `
   - action: install-packages
@@ -130,6 +136,7 @@ export const FEATURES = [
   {
     id: 'nosleep', group: 'Desktop', title: 'Never suspend', phrase: 'no suspend',
     desc: 'Masks the sleep targets – for VMs that must stay reachable.',
+    targets: NOT_CONTAINERS,
     steps: () => `
   - action: disable-sleep
 `,
@@ -159,10 +166,11 @@ export const FEATURES = [
   {
     id: 'tls', group: 'Services', title: "Let's Encrypt certificate", phrase: 'a TLS certificate',
     desc: 'certbot certificate with automatic renewal (on the running machine only).',
+    targets: ['shell', 'apply', 'cloud-init'],
     params: [{ id: 'domain', label: 'Domain', value: 'www.example.com' }, { id: 'email', label: 'E-mail', value: '' }],
     steps: (p) => `
   - title: TLS certificate
-    targets: [shell, apply]
+    targets: [shell, apply, cloud-init]
     action: letsencrypt-certificate
     args:
       domain: ${q(p.domain || 'www.example.com')}${p.email ? `
@@ -183,6 +191,7 @@ export const FEATURES = [
   {
     id: 'hostname', group: 'System', title: 'Host name', phrase: 'a host name',
     desc: 'Set at run time (not baked into container images).',
+    targets: NOT_CONTAINERS,
     params: [{ id: 'name', label: 'Host name', value: 'devbox' }],
     steps: (p) => `
   - action: set-hostname
@@ -192,6 +201,7 @@ export const FEATURES = [
   {
     id: 'swap', group: 'System', title: 'Swap file', phrase: 'a swap file',
     desc: 'Creates and enables a swap file (skipped in containers).',
+    targets: NOT_CONTAINERS,
     params: [{ id: 'size', label: 'Size', value: '2G' }],
     steps: (p) => `
   - action: add-swap-file

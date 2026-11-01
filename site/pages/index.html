@@ -22,7 +22,7 @@
   <div class="wrap">
     <p class="eyebrow">Live – runs osb in your browser</p>
     <h2>Change the flavor, keep the configuration</h2>
-    <p class="lead">Edit the YAML on the left. osb (compiled to WebAssembly) renders it on the right, the same way the CLI does. Switch the distribution: package names (<code>openssh-server</code> → <code>openssh</code>), service names and paths change – the configuration doesn't.</p>
+    <p class="lead">Edit the YAML on the left – with completion (<kbd>Ctrl</kbd>+<kbd>Space</kbd>) and documentation on hover. osb (compiled to WebAssembly) renders it on the right, the same way the CLI does. Switch the distribution: package names (<code>openssh-server</code> → <code>openssh</code>), service names and paths change – the configuration doesn't.</p>
     <div class="demo">
       <div class="panel">
         <div class="panel-head">
@@ -33,7 +33,7 @@
             <button type="button" data-flavor="archlinux" aria-pressed="false">Arch</button>
           </div>
         </div>
-        <div class="code-wrap"><textarea class="code" id="demo-yaml" spellcheck="false" aria-label="Configuration"></textarea></div>
+        <div id="demo-yaml"></div>
       </div>
       <div class="panel" id="demo-out-panel">
       </div>
@@ -79,6 +79,7 @@
       <div class="card"><div class="icon">⧉</div><h3>Libraries &amp; tests</h3><p>Write your own actions, import them from files or git (pinned in a lockfile) and test them with <code>osb test</code> – golden files and runs in real containers.</p></div>
       <div class="card"><div class="icon">✓</div><h3>Safe by default</h3><p>Errors with <code>file:line</code>, secrets masked everywhere and passed as BuildKit secrets, idempotent scripts, and <code>osb apply</code> asks before it changes anything.</p></div>
       <div class="card"><div class="icon">⌁</div><h3>Readable output</h3><p>No agent and no runtime: the generated POSIX shell script is plain, commented and dependency-free. Read it, review it, run it anywhere.</p></div>
+      <div class="card"><div class="icon">⌨</div><h3>Editor support</h3><p>Completion and documentation for actions and their arguments – in the <a href="playground.html">playground</a>, in VS Code (extension on the releases page) and in every editor with the YAML language server.</p></div>
       <div class="card"><div class="icon">▣</div><h3>A single binary</h3><p>Actions, the shell library and the JSON schema for editor completion are compiled in. Linux and macOS, amd64 and arm64.</p></div>
     </div>
   </div>

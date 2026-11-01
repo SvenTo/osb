@@ -40,7 +40,7 @@ $('b-name').value = state.name;
 const view = new OutputView($('b-out'), { title: 'Rendered by osb', showPlan: true });
 
 function supported(f) {
-  return !f.flavors || f.flavors.includes(state.flavor);
+  return (!f.flavors || f.flavors.includes(state.flavor)) && (!f.targets || f.targets.includes(state.target));
 }
 
 function params(f) {
@@ -55,8 +55,19 @@ function params(f) {
 function renderFeatures() {
   const root = $('features');
   root.replaceChildren();
+  const groups = new Map();
+  let hidden = 0;
   for (const f of FEATURES) {
     const ok = supported(f);
+    if (!ok) {
+      hidden++;
+      continue;
+    }
+    if (!groups.has(f.group)) {
+      const grid = el('div', { class: 'feature-groups' });
+      groups.set(f.group, grid);
+      root.append(el('section', { class: 'feature-group', 'aria-label': f.group }, el('h3', {}, f.group), grid));
+    }
     const on = ok && state.on.has(f.id);
     const box = el('input', { type: 'checkbox', id: 'f-' + f.id, checked: on, disabled: !ok });
     const paramsBox = el('div', { class: 'f-params', hidden: !on || !(f.params || []).length });
@@ -85,7 +96,11 @@ function renderFeatures() {
       box.click();
     });
     box.addEventListener('change', () => toggle(f, box.checked));
-    root.append(card);
+    groups.get(f.group).append(card);
+  }
+  if (hidden) {
+    const t = TARGETS.find(([v]) => v === state.target)[1].replace(/^(a|an|my) /, '');
+    root.append(el('p', { class: 'hidden-note' }, `${hidden} more option${hidden > 1 ? 's are' : ' is'} not available for ${t} on ${FLAVOR_LABELS[state.flavor]}.`));
   }
 }
 
@@ -175,7 +190,7 @@ async function update() {
 }
 const later = debounce(update, 250);
 
-$('b-target').addEventListener('change', (e) => { state.target = e.target.value; update(); });
+$('b-target').addEventListener('change', (e) => { state.target = e.target.value; renderFeatures(); update(); });
 $('b-flavor').addEventListener('change', (e) => { state.flavor = e.target.value; renderFeatures(); update(); });
 $('b-user').addEventListener('input', later);
 $('b-name').addEventListener('input', later);

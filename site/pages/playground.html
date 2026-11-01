@@ -17,9 +17,11 @@
   </div>
   <div class="demo">
     <div class="panel">
-      <div class="panel-head"><span class="panel-title">osb.yaml</span><span class="hint" style="margin:0;font-size:12px">Saved in this browser</span></div>
-      <div class="code-wrap"><textarea class="code" id="pg-yaml" spellcheck="false" aria-label="Configuration" style="min-height:560px"></textarea></div>
+      <div class="files-bar" id="pg-files" role="tablist" aria-label="Files"></div>
+      <div id="pg-editor"></div>
+      <div class="help doc" id="pg-help" hidden></div>
       <form class="args-form" id="pg-args" hidden></form>
+      <div class="files-note">Completion: <kbd>Ctrl</kbd>+<kbd>Space</kbd> · hover for documentation · files are saved in this browser and are relative to <code>osb.yaml</code> (<code>source:</code>, <code>file()</code>, <code>copy-files</code>).</div>
     </div>
     <div class="panel" id="pg-out"></div>
   </div>
@@ -29,6 +31,6 @@
     <input class="input" id="pal-search" type="search" placeholder="Search actions (e.g. user, aur, systemd, certificate)">
     <div class="palette-list" id="pal-list"></div>
   </section>
-  <p class="hint" style="margin-bottom:48px">In the browser osb cannot read local files (<code>source:</code>, <code>file()</code>) or imports, and does not build images – the <a href="docs/getting-started.html">binary</a> does.</p>
+  <p class="hint" style="margin-bottom:48px">In the browser osb does not resolve imports and does not build images – the <a href="docs/getting-started.html">binary</a> does.</p>
 </div>
 {{end}}

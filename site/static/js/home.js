@@ -1,4 +1,5 @@
-import { render, OutputView, debounce, encodeShare, gotoLine, tabIndent } from './osb.js';
+import { render, OutputView, debounce, encodeShare, osbLang } from './osb.js';
+import { Editor } from './editor.js';
 
 const EXAMPLE = `name: webserver
 description: A small web server
@@ -34,20 +35,19 @@ steps:
           default: [nginx.service, ssh.service]
 `;
 
-const yaml = document.getElementById('demo-yaml');
 const view = new OutputView(document.getElementById('demo-out-panel'), { title: 'Generated' });
-view.onErrorLine = (line) => gotoLine(yaml, line);
 let flavor = 'ubuntu';
 let target = 'shell';
 
-yaml.value = EXAMPLE;
-tabIndent(yaml);
-
 const update = async () => {
-  view.show(await render({ config: yaml.value, flavor, target }).catch((e) => ({ error: String(e) })));
+  const resp = await render({ config: yaml.value, flavor, target }).catch((e) => ({ error: String(e) }));
+  yaml.markError(resp.error && +(/osb\.yaml:(\d+)/.exec(resp.error) || [])[1]);
+  view.show(resp);
 };
 const later = debounce(update, 250);
-yaml.addEventListener('input', later);
+const yaml = new Editor(document.getElementById('demo-yaml'), { value: EXAMPLE, label: 'Configuration', onChange: later });
+view.onErrorLine = (line) => yaml.gotoLine(line);
+osbLang().then((l) => yaml.setLang(l));
 
 function segmented(id, attr, set) {
   const group = document.getElementById(id);

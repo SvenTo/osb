@@ -80,34 +80,20 @@ export function el(tag, attrs = {}, ...children) {
   return e;
 }
 
-function esc(s) {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-/** Minimal highlighting for shell, YAML and Dockerfiles (comments, keys, instructions). */
+/** Syntax highlighting (osb-lang.js). */
 export function highlight(text, kind) {
-  return text.split('\n').map((line) => {
-    const e = esc(line);
-    if (/^\s*#/.test(line)) return `<span class="c">${e}</span>`;
-    if (kind === 'yaml') {
-      const m = e.match(/^(\s*(?:- )?)([A-Za-z0-9_.@-]+)(:)(.*)$/);
-      if (m) return `${m[1]}<span class="k">${m[2]}</span>${m[3]}${m[4].replace(/(\s#.*)$/, '<span class="c">$1</span>')}`;
-      return e;
-    }
-    if (kind === 'dockerfile') {
-      return e.replace(/^([A-Z]+)(\s)/, '<span class="k">$1</span>$2');
-    }
-    // shell: function names and quoted strings
-    return e
-      .replace(/^(\s*)([a-z_]+)(\(\))/, '$1<span class="k">$2</span>$3')
-      .replace(/^(\s*)(step|log|warn|die|pkg_[a-z]+|write_file|ensure_[a-z]+|as_user|set_owner|unit_[a-z]+|osb_[a-z]+)\b/, '$1<span class="k">$2</span>');
-  }).join('\n');
+  return window.osbLang.highlight(text, kind);
 }
 
 function kindOf(path) {
-  if (/Dockerfile$/.test(path)) return 'dockerfile';
-  if (/(user-data|meta-data|\.ya?ml)$/.test(path)) return 'yaml';
-  return 'shell';
+  return window.osbLang.languageOf(path.replace(/ \(.*\)$/, ''));
+}
+
+let langPromise;
+/** The completion and documentation engine for the editors (needs the WASM catalog). */
+export function osbLang() {
+  if (!langPromise) langPromise = catalog().then((c) => new window.osbLang.Lang(c));
+  return langPromise;
 }
 
 /**
