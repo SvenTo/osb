@@ -2,6 +2,7 @@ package shell
 
 import (
 	"os/exec"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -47,7 +48,9 @@ func TestOnlyNeededHelpers(t *testing.T) {
 	if !strings.Contains(s, "osb_finish()") || !strings.Contains(s, "OSB_FAILED=0") || !strings.Contains(s, "warn()") {
 		t.Error("on-error: continue helpers missing")
 	}
-	out, err := exec.Command("sh", "-c", strings.NewReplacer("require_root\n", "", "check_flavor arch\n", "").Replace(s)).CombinedOutput()
+	// run it here: without the root and distribution checks
+	run := regexp.MustCompile(`(?m)^(require_root|check_flavor .*)$`).ReplaceAllString(s, "")
+	out, err := exec.Command("sh", "-c", run).CombinedOutput()
 	if err != nil || !strings.Contains(string(out), "finished with 1 failed step(s)") {
 		t.Errorf("script failed: %v\n%s", err, out)
 	}
