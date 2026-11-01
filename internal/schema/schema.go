@@ -111,7 +111,9 @@ func artifactSchemas() obj {
 			"hostname": str("Host name"),
 			"extra":    obj{"type": "object", "description": "Merged verbatim into #cloud-config"},
 		}},
-		"shell": obj{"type": "object", "additionalProperties": false, "properties": obj{}},
+		"shell": obj{"type": "object", "additionalProperties": false, "properties": obj{
+			"colors": obj{"type": []string{"boolean", "string"}, "description": "Colored output (log, warnings, steps) when the script runs in a terminal; also for apply and cloud-init (default false)"},
+		}},
 	}
 }
 

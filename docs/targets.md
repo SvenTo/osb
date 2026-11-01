@@ -24,17 +24,22 @@ A single POSIX `sh` script without dependencies beyond a base system
 images. It contains:
 
 1. a header with the source, flavor and command used to generate it,
-2. a small helper library (`log`, `warn`, `die`, `step`, `as_user`,
-   `write_file`, `ensure_line`, `pkg_install`, ...), with short comments,
+2. only the helper functions the script calls (`log`, `step`, `write_file`,
+   `ensure_line`, `pkg_install`, ...), each with a short comment – a script
+   that just installs packages and writes files has a handful of them,
 3. `require_root` and a `check_flavor` guard that aborts on the wrong distribution,
 4. one commented block per step.
+
+Output is plain text. With `artifacts.shell.colors: true` the script colors its
+messages when it runs in a terminal (also for `apply` and the cloud-init run
+script).
 
 ```sh
 # -----------------------------------------------------------------------------
 # Step 3/4: Create user dev
 # (name: user, action: add-user, osb.yaml:32)
 # -----------------------------------------------------------------------------
-step 'Create user dev'
+step 3/4 'Create user dev'
 id -u dev >/dev/null 2>&1 || useradd --create-home --shell /bin/bash dev
 usermod -aG sudo dev
 ```

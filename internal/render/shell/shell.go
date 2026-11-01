@@ -44,6 +44,8 @@ type Doc struct {
 	Total int
 	// Notes are added as comments before the steps.
 	Notes []string
+	// Colors adds terminal colors to the output helpers (artifacts.shell.colors).
+	Colors bool
 }
 
 // Q quotes a word for the shell.
@@ -64,30 +66,42 @@ func Render(d *Doc) string {
 	if d.Command != "" {
 		fmt.Fprintf(&b, "# Command: %s\n", d.Command)
 	}
-	b.WriteString("set -eu\n\n")
-	b.WriteString(Library(d.Flavor))
-	b.WriteString("\n# --- configuration -----------------------------------------------------------\n")
-	b.WriteString("require_root\n")
-	fmt.Fprintf(&b, "check_flavor %s\n", strings.Join(quoteAll(d.Flavor.OSReleaseIDs), " "))
+	b.WriteString("set -eu\n")
+
+	// The configuration first, so that only the helpers it uses are included.
+	var body strings.Builder
+	body.WriteString("require_root\n")
+	fmt.Fprintf(&body, "check_flavor %s\n", strings.Join(quoteAll(d.Flavor.OSReleaseIDs), " "))
 	total := d.Total
 	if total == 0 {
 		total = len(d.Steps)
 	}
-	fmt.Fprintf(&b, "OSB_STEPS=%d\n", total)
 	if len(d.Notes) > 0 {
-		b.WriteString("\n")
+		body.WriteString("\n")
 		for _, n := range d.Notes {
-			b.WriteString("# " + n + "\n")
+			body.WriteString("# " + n + "\n")
 		}
 	}
 	for _, s := range d.Steps {
-		b.WriteString("\n")
-		if d.Total > 0 {
-			fmt.Fprintf(&b, "OSB_STEP=%d\n", s.Index-1)
-		}
-		b.WriteString(StepScript(s, d.Flavor, total))
+		body.WriteString("\n")
+		body.WriteString(StepScript(s, d.Flavor, total))
 	}
-	b.WriteString("\nosb_finish\n")
+	if strings.Contains(body.String(), "OSB_FAILED") {
+		body.WriteString("\nosb_finish\n") // summary of steps that failed with on-error: continue
+	} else {
+		body.WriteString("\nlog 'finished successfully'\n")
+	}
+
+	helpers := Helpers(body.String(), d.Flavor)
+	if d.Colors {
+		helpers = Colored(helpers)
+	}
+	if helpers != "" {
+		b.WriteString("\n# --- helpers (from osb's shell library) " + strings.Repeat("-", 39) + "\n")
+		b.WriteString(helpers)
+	}
+	b.WriteString("\n# --- configuration " + strings.Repeat("-", 59) + "\n")
+	b.WriteString(body.String())
 	return b.String()
 }
 
@@ -129,7 +143,7 @@ func oneLine(s string) string {
 func StepScript(s *ops.Step, fl *flavor.Flavor, total int) string {
 	var b strings.Builder
 	b.WriteString(StepHeader(s, total))
-	fmt.Fprintf(&b, "step %s\n", Q(oneLine(s.Title)))
+	fmt.Fprintf(&b, "step %d/%d %s\n", s.Index, total, Q(oneLine(s.Title)))
 	b.WriteString(Guarded(s, Body(s, fl)))
 	return b.String()
 }

@@ -158,6 +158,8 @@ artifacts:
     cpus: 2
     os-type: ubuntu64Guest       # VMware guest OS id; default per flavor
     name: devbox
+  shell:
+    colors: false                # colored output in a terminal (also apply, cloud-init)
   cloud-init:
     hostname: devbox
     extra:                       # merged into #cloud-config (lists are appended)

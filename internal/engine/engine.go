@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/SvenTo/osb/internal/actions"
@@ -45,6 +46,18 @@ func (p *Plan) Artifact(name string) map[string]any {
 	return map[string]any{}
 }
 
+// isTrue interprets a rendered setting as a boolean.
+func isTrue(v any) bool {
+	switch t := v.(type) {
+	case bool:
+		return t
+	case string:
+		b, _ := strconv.ParseBool(t)
+		return b
+	}
+	return false
+}
+
 // ShellDoc converts the plan into the input of the shell renderer.
 func (p *Plan) ShellDoc(version, command string) *shell.Doc {
 	return &shell.Doc{
@@ -55,6 +68,7 @@ func (p *Plan) ShellDoc(version, command string) *shell.Doc {
 		Command: command,
 		Version: version,
 		Steps:   p.Steps,
+		Colors:  isTrue(p.Artifact("shell")["colors"]),
 	}
 }
 

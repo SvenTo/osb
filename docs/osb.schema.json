@@ -5229,7 +5229,15 @@
         },
         "shell": {
           "additionalProperties": false,
-          "properties": {},
+          "properties": {
+            "colors": {
+              "description": "Colored output (log, warnings, steps) when the script runs in a terminal; also for apply and cloud-init (default false)",
+              "type": [
+                "boolean",
+                "string"
+              ]
+            }
+          },
           "type": "object"
         },
         "wsl": {
